@@ -110,6 +110,7 @@ class Tag:
     def __new__(cls, tagname, *args, **kwargs):
         with cls._cache_lock:
             if tagname in cls._cache:
+                cls._cache_counter+=1
                 return cls._cache[tagname]
         tag = super(Tag, cls).__new__(cls)
         return tag
@@ -127,7 +128,6 @@ class Tag:
         
         with Tag._cache_lock:
             if name in self._cache:
-                self._cache_counter+=1
                 return
             self.name = name
             self._cache[self.name] = self
@@ -485,7 +485,7 @@ class Tag:
     # '&' with '*a*'
     # '.' with *d*
     # '?' with *q*
-        return (self.name).replace(r'/','*s*').replace(r'&','*a*').replace(r'.','*d*').replace(r'?','*q*')
+        return utils.urlext_from_tagname(self.name)
 
     @property
     def metadata(self):

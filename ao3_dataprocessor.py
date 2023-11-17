@@ -12,6 +12,12 @@ with open("queried_works_dict_list.dat", "rb") as file:
     pickled_data = blosc.decompress(compressed_pickle)
     dict_list = pickle.loads(pickled_data)
     
+with open("tagCache_compressed_modified.dat", "rb") as file:
+    compressed_pickle=file.read()
+    pickled_data = blosc.decompress(compressed_pickle)
+
+    AO3.Tag._cache = pickle.loads(pickled_data)
+
 
 # For each work, extract metadata and access time
 
@@ -65,15 +71,45 @@ def safe_attribute(o,attr):
 
 counter = 0
 total_entries = sum(sum(len(i) for i in inner_list) for inner_list in dict_list)
+
+
+
+inner_list = dict_list[0]
+for works_dict in inner_list:
+        for work in works_dict.values():
+            counter+=1
+            print(f"Processing work #{counter} of {total_entries} ({(100*counter)//total_entries}% done) Cache Accessed {AO3.Tag.getCacheAccesses()} times. Total # Tags Cached: {len(AO3.Tag._cache)}")
+            for att in normal_fields:
+                data_dict[att].append(safe_attribute(work,att))
+            for att in datetime_fields:
+                out = safe_attribute(work,att)
+                if pd.isna(out):
+                    data_dict[att].append(pd.NA)
+                else:
+                    data_dict[att].append(pd.Timestamp(out))
+            
+            # Try to get search tags
+            # Tags are dynamic, so authors and the archive can change tags at any time
+            # The historical data is loaded, so ok to reload tag if necessary
+            try:
+                data_dict['searchable_tags'].append(work.search_tags)
+            except:
+                work.reload()
+                data_dict['searchable_tags'].append(work.search_tags)
+
 for inner_list in dict_list:
     for works_dict in inner_list:
         for work in works_dict.values():
             counter+=1
-            print(f"Processing work #{counter} of {total_entries} ({(100*counter)//total_entries}% done)")
+            print(f"Processing work #{counter} of {total_entries} ({(100*counter)//total_entries}% done) Cache Accessed {AO3.Tag.getCacheAccesses()} times.")
             for att in normal_fields:
                 data_dict[att].append(safe_attribute(work,att))
             for att in datetime_fields:
-                data_dict[att].append(pd.Timestamp(safe_attribute(work,att)))
+                out = safe_attribute(work,att)
+                if pd.isna(out):
+                    data_dict[att].append(pd.NA)
+                else:
+                    data_dict[att].append(pd.Timestamp(out))
             data_dict['searchable_tags'].append(work.search_tags)
             
 

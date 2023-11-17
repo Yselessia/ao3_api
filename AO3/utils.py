@@ -617,7 +617,7 @@ def urlext_from_tagname(tagname):
     # '.' with *d*
     # '?' with *q*
     
-    return tagname.replace(r'/','*s*').replace(r'&','*a*').replace(r'.','*d*').replace(r'?','*q*')
+    return tagname.replace(r'/','*s*').replace(r'&','*a*').replace(r'.','*d*').replace(r'?','*q*').replace(r'#','*h*')
 
 def tagname_from_urlext(url):
     # Do the following character substititions
@@ -626,7 +626,7 @@ def tagname_from_urlext(url):
     # '.' with *d*
     # '?' with *q*
     
-    return url.replace('*s*',r'/').replace('*a*',r'&').replace('*d*',r'.').replace('*q*',r'?')
+    return url.replace('*s*',r'/').replace('*a*',r'&').replace('*d*',r'.').replace('*q*',r'?').replace('*h*',r'#')
 
 def get_inherited_tags(tag_list,parents=True,metatags=True,characters_from_relationships=False,max_workers=None):
     '''
