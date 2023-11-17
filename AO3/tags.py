@@ -28,6 +28,11 @@ class Tag:
     """
     _cache = {}
     _cache_lock = threading.Lock() # Lock for cache access
+    _cache_counter = 0
+    
+    @classmethod
+    def getCacheAccesses(cls):
+        return cls._cache_counter
     
     @classmethod
     def __inCache(cls,tagname):
@@ -122,6 +127,7 @@ class Tag:
         
         with Tag._cache_lock:
             if name in self._cache:
+                self._cache_counter+=1
                 return
             self.name = name
             self._cache[self.name] = self
