@@ -1,12 +1,16 @@
 import os
 import pickle
 import re
+import warnings
+import queue
 
 from bs4 import BeautifulSoup
 
 from .requester import requester
 from .common import url_join
-
+from .tags import Tag
+from concurrent import futures
+import time
 _FANDOMS = None
 _LANGUAGES = None
 
@@ -29,6 +33,11 @@ class UnexpectedResponseError(Exception):
         self.errors = errors
         
 class InvalidIdError(Exception):
+    def __init__(self, message, errors=[]):
+        super().__init__(message)
+        self.errors = errors
+        
+class InvalidTagError(Exception):
     def __init__(self, message, errors=[]):
         super().__init__(message)
         self.errors = errors
@@ -600,3 +609,116 @@ def collect(collectable, session, collections):
             raise CollectError("We couldn't add your submission to the following collection(s): " + " ".join(errors))  
     else:
         raise UnexpectedResponseError(f"Unexpected HTTP status code received ({req.status_code})")
+
+def urlext_from_tagname(tagname):
+    # Do the following character substititions, but reversed
+    # '/' with '*s*'
+    # '&' with '*a*'
+    # '.' with *d*
+    # '?' with *q*
+    
+    return tagname.replace(r'/','*s*').replace(r'&','*a*').replace(r'.','*d*').replace(r'?','*q*')
+
+def tagname_from_urlext(url):
+    # Do the following character substititions
+    # '/' with '*s*'
+    # '&' with '*a*'
+    # '.' with *d*
+    # '?' with *q*
+    
+    return url.replace('*s*',r'/').replace('*a*',r'&').replace('*d*',r'.').replace('*q*',r'?')
+
+def get_inherited_tags(tag_list,parents=True,metatags=True,characters_from_relationships=False,max_workers=None):
+    '''
+    Given a list of tags (maybe a work?), return all parent and/or meta tags recursively via multiple processes
+    E.g. Given ['Alice Cullen/Harry Potter'] with metatags=False it will return a list of tag objects for
+    ['Alice Cullen/Harry Potter', 'Alice Cullen', 'Twilight (Movies)', 'Twilight Series - All Media Types', 'Twilight Series - Stephanie Meyer',
+    'Movies', 'Books & Literature', 'Harry Potter', 'Harry Potter - J. K. Rowling', 'Video Games']
+    '''
+    # Make a list if not a list
+    if type(tag_list) is not list: tag_list = [ tag_list ]
+    
+    if not (parents or metatags):
+        warnings.warn("Neither parents nor metatags requested, so no work to do.", stacklevel=2)
+        return []
+    
+    
+    q = queue.Queue()
+    # Enqueue all tagnames
+    for tag in tag_list:
+        q.put(tag)
+    
+    # Define processing function
+    def worker_function(tag):
+        if not tag.loaded:
+            tag.reload()
+                
+        out = []
+        # Check if the current tag was merged.
+        # merged tags are deprecated, so if it is only add the merged tag to the queue
+        if tag.merged_name:
+            out.append(tag.get_merged())
+        else:
+            if metatags:
+                out+=tag.get_metatags()
+            if parents:
+                out+=tag.get_parents()
+            elif characters_from_relationships and tag.category =='Relationship':
+                for parent_tag in tag.get_parents():
+                    if not parent_tag.loaded:
+                        parent_tag.get_reload()
+                    if parent_tag.category == 'Character':
+                        out.append(parent_tag)
+        
+        return out
+        
+    futures_to_tags = {}
+    visited = list()
+    
+    with futures.ThreadPoolExecutor(max_workers) as executor:
+        while futures_to_tags or not q.empty():
+            # check for status of the futures which are currently working
+            done, not_done = futures.wait(
+                futures_to_tags, timeout=80,
+                return_when=futures.FIRST_COMPLETED)
+            
+            # if there is incoming work, start a new future
+            while not q.empty():
+    
+                # fetch a tag from the queue
+                tag = q.get()
+    
+                # Start the load operation and mark the future with its tag
+                futures_to_tags[executor.submit(worker_function, tag)] = tag
+            
+            # process any completed futures
+            for future in done:
+                tag = futures_to_tags[future]
+                future_visit = set()
+                try:
+                    parent_tags = future.result()
+                except Exception as exc:
+                    print('%r generated an exception: %s' % (tag, exc))
+                else:
+                    # Add current tagname to visited set if canonical
+                    if tag.canonical:
+                        visited.append(tag)
+                    # Add parents to queue if they're not in the visited set
+                    #print(future_to_tagname.values())
+                    for parent_tag in parent_tags:
+                        if parent_tag not in visited and parent_tag not in futures_to_tags.values():
+                            # Only enqueue if we need to
+                            if parents:
+                                future_visit.add(parent_tag)
+                            else:
+                                # Don't add visited tags to queue, just visit them
+                                visited.append(parent_tag)
+                for future_tag in future_visit:
+                    q.put(future_tag)
+    
+                # remove the now completed future
+                del futures_to_tags[future]
+                
+    # Post-processing
+    # Retain only canonical tags
+    return visited

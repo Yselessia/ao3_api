@@ -269,6 +269,89 @@ Replies: 2
 Loading comments takes a very long time so you should try and use it as little as possible. It also causes lots of requests to be sent to the AO3 servers, which might result in getting the error `utils.HTTPError: We are being rate-limited. Try again in a while or reduce the number of requests`. If that happens, you should try to space out your requests or reduce their number. There is also the option to enable request limiting using `AO3.utils.limit_requests()`, which make it so you can't make more than x requests in a certain time window.
 You can also reply to comments using the `Comment.reply()` function, or delete one (if it's yours) using `Comment.delete()`.
 
+## Tags
+
+Much of the uniqueness of AO3 comes from how it handles tags. Tags and their relationships with one another maintained by volunteer "Tag Wranglers." See https://archiveofourown.org/wrangling_guidelines/2 for AO3's guidelines on Tag maintenence.
+
+Tags are the primary mechanism for how users navigate AO3. The Tag class was created to better facilitate analysis of Works by their tags.
+
+To load a tag, simple declare an instance of the Tag class with the given name. Once loaded, a Tag will populate metadata such as its parent tags, subtags, children, synonyms, categories, etc. You can view all of this with the `metadata()` property.
+
+```
+a = Tag("SHAKESPEARE William - Works",load=True)
+a.metadata
+b = Tag("SHAKESPEARE William - Works",load=True)
+assert a == b
+```
+
+Once a Tag object is created, it is cached by its name. Creating a new object of that Tag name redirects to the first instance created.
+
+```
+b = Tag("SHAKESPEARE William - Works",load=True)
+assert a == b
+```
+
+When loading a tag that has been made a synonym of a different tag, the Tag constructor will automatically populate the new primary tag and redirect all synonyms in the cache.
+
+```
+print(Tag("Magic the Gathering"))
+```
+
+```
+<Tag [Magic: The Gathering (Card Game)]>
+```
+
+Cacheing limits the number of queries to AO3 when parsing data of similar tags. The primary use case for the Tag class is the `Works.inherited_metatags` property.
+
+Metatags are inherited through This method takes all listed tags of a work and recursively queries AO3 for all metatags, then returns all canonical tags found.
+
+```
+w = Work("49394584")
+for tag in Work("49394584").tags_unified:
+    print(tag)
+```
+
+```
+<Tag [Teen And Up Audiences]>
+<Tag [Creator Chose Not To Use Archive Warnings]>
+<Tag [F/M]>
+<Tag [M/M]>
+<Tag [Wolverine And The X-Men (Cartoon)]>
+<Tag [Wanda Maximoff/Kurt Wagner]>
+<Tag [Original Female Character(s)/Original Male Character(s)]>
+<Tag [Kurt Wagner]>
+<Tag [Wanda Maximoff]>
+<Tag [Original Characters]>
+<Tag [Maxine Wagner (X-Men OC)]>
+<Tag [Rento Keniuchio (X-Men OC)]>
+<Tag [Hatsuko Keniuchio (X-Men OC)]>
+<Tag [Cooper Clarkson (X-Men OC)]>
+```
+
+
+```
+for tag in w.inherited_metatags:
+    print(tag)
+```
+
+```
+<Tag [Teen And Up Audiences]>
+<Tag [F/M]>
+<Tag [M/M]>
+<Tag [Wolverine And The X-Men (Cartoon)]>
+<Tag [Wanda Maximoff/Kurt Wagner]>
+<Tag [Original Female Character(s)/Original Male Character(s)]>
+<Tag [Kurt Wagner]>
+<Tag [Wanda Maximoff]>
+<Tag [Original Characters]>
+<Tag [Wolverine and the X-Men - All Media Types]>
+<Tag [Original Character(s)/Original Character(s)]>
+<Tag [Kurt]>
+<Tag [Wanda]>
+<Tag [X-Men - All Media Types]>
+<Tag [Marvel]>
+```
+
 
 ## Extra
 

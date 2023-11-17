@@ -4,12 +4,11 @@ from functools import cached_property
 
 from bs4 import BeautifulSoup
 
-from . import threadable, utils
+from . import threadable, utils, tags
 from .chapters import Chapter
 from .comments import Comment
 from .requester import requester
 from .users import User
-
 
 class Work:
     """
@@ -33,6 +32,9 @@ class Work:
         self.chapters = []
         self.id = workid
         self._soup = None
+        
+        self.date_queried = None
+        
         if load:
             self.reload(load_chapters)
             
@@ -63,7 +65,7 @@ class Work:
                 self.__dict__[attr] = value
         
     @threadable.threadable
-    def reload(self, load_chapters=True):
+    def reload(self, load_chapters=False, load_chapter_dates = False):
         """
         Loads information about this work.
         This function is threadable.
@@ -81,7 +83,12 @@ class Work:
         if "Error 404" in self._soup.find("h2", {"class", "heading"}).text:
             raise utils.InvalidIdError("Cannot find work")
         if load_chapters:
-            self.load_chapters()
+            self.load_chapters() 
+            
+        if load_chapter_dates:
+            _ = self.chapter_dates
+        
+        self.date_queried = datetime.now()
         
     def set_session(self, session):
         """Sets the session used to make requests for this work
@@ -113,6 +120,8 @@ class Work:
                 title = preface_group.find("h3", {"class": "title"})
                 if title is None:
                     continue
+                else:
+                    title = str(title)
                 id_ = int(title.a["href"].split("/")[-1])
                 c = Chapter(id_, self, self._session, False)
                 c._soup = chapter
@@ -937,7 +946,7 @@ class Work:
 
         req = self.get(url)
         if len(req.content) > 650000:
-            warnings.warn("This work is very big and might take a very long time to load")
+            warnings.warn("This work is very big and might take a very long time to load", stacklevel=2)
         soup = BeautifulSoup(req.content, "lxml")
         return soup
 
@@ -953,3 +962,55 @@ class Work:
         """
 
         return string.replace(",", "")
+
+    @cached_property
+    def tags_unified(self):
+        '''
+        Returns all tags of a work in a single list as Tag objects
+        '''
+        return list(map(lambda t:tags.Tag(t,load=False,session=self._session),[self.rating]+self.warnings+self.categories+self.fandoms+self.relationships+self.characters+self.tags))
+    
+    @cached_property
+    def search_tags(self):
+        '''
+        Returns the names of all tags that could return this work in a search.
+        
+        In practice, this is all listed tags and any metatags associated with them.
+        Any tag that has been made synonymous to another tag is replaced with the corresponding main tag.
+        For example, the a work with the tag "Wolverine And The X-Men (Cartoon)" will return
+        ["Wolverine And The X-Men (Cartoon)", "Wolverine and the X-Men - All Media Types", "X-Men - All Media Types", "Marvel"]
+        
+        This method queries AO3 at least once for each tag in self.tags_unified.
+        '''
+        return [tag.name for tag in utils.get_inherited_tags(self.tags_unified,parents=False,metatags=True,characters_from_relationships=False)]
+
+    def inherited_tags(self,metatags=True,parents=False,characters_from_relationships=False):
+        '''
+        Returns all tags along with all their parents and metatags recursively as Tag objects.
+        
+        For example, the a work with the tag "Chi-Chi/Son Goku (Dragon Ball)" will return a list
+        of Tag objects with ["Chi-Chi/Son Goku (Dragon Ball)", "Dragon Ball", "Son Goku (Dragon Ball)",
+        "Chi-Chi (Dragon Ball)","Son Goku", "Anime & Manga","Chi-Chi","No Fandom","Goku","No Media"]
+        
+        Args:
+            metatags (bool): If True, will return any metatags found.
+            
+            parents (bool): If True, will return the parents of any tags recursively.
+            
+            characters_from_relationships (bool): If True, will return the corresponding
+            character tags for each relationship tag. AO3 does not list each character in
+            a relationships as a metatag. For example, a fic tagged with "Patrick Stump/Pete Wentz"
+            must be explicitly tagged by the author with "Patrick Stump" and "Pete Wentz"
+            separately or a search will for either will not produce the fic.
+            
+        '''
+        return utils.get_inherited_tags(self.tags_unified,metatags=metatags,parents=parents,characters_from_relationships=characters_from_relationships)
+    
+    
+    @cached_property
+    def chapter_dates(self):
+        temp_soup = self.request(f"https://archiveofourown.org/works/{self.id}/navigate?view_adult=true&view_full_work=true")
+        if "Error 404" in self._soup.find("h2", {"class", "heading"}).text:
+            raise utils.InvalidIdError("Cannot find work")
+        dts = soup.find("ol", {"class":"chapter index group"}).find_all("span",{"class":"datetime"})
+        return [datetime(*list(map(int, dp.text[1:-1].split("-")))) for dp in dts]

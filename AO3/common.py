@@ -19,9 +19,9 @@ def get_work_from_banner(work):
         for a in work.h4.find_all("a"):
             if 'rel' in a.attrs.keys():
                 if "author" in a['rel']:
-                    authors.append(User(a.string, load=False))
+                    authors.append(User(str(a.string), load=False)) # cast as string for pickling
             elif a.attrs["href"].startswith("/works"):
-                workname = a.string
+                workname = str(a.string)
                 workid = utils.workid_from_url(a['href'])
     except AttributeError:
         pass
@@ -31,7 +31,7 @@ def get_work_from_banner(work):
     fandoms = []
     try:
         for a in work.find("h5", {"class": "fandoms"}).find_all("a"):
-            fandoms.append(a.string)
+            fandoms.append(str(a.string))
     except AttributeError:
         pass
 
@@ -130,6 +130,8 @@ def get_work_from_banner(work):
         date_updated = None
     else:
         date_updated = datetime.datetime.strptime(date.getText(), "%d %b %Y")
+        
+    date_queried = datetime.datetime.now()
 
     __setifnotnone(new, "authors", authors)
     __setifnotnone(new, "bookmarks", bookmarks)
@@ -153,6 +155,7 @@ def get_work_from_banner(work):
     __setifnotnone(new, "title", workname)
     __setifnotnone(new, "warnings", warnings)
     __setifnotnone(new, "words", words)
+    __setifnotnone(new, "date_queried", date_queried)
     
     return new
 
