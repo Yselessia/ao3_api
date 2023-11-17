@@ -1,0 +1,6 @@
+BeautifulSoup4
+lxml
+requests
+ratelimit
+backoff
+blosc

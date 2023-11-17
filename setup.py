@@ -16,7 +16,7 @@ setuptools.setup(
     install_requires=requires,
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/ArmindoFlores/ao3_api",
+    url="https://github.com/jtrainrva/ao3_api",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
