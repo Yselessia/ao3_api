@@ -275,7 +275,42 @@ Much of the uniqueness of AO3 comes from how it handles tags. Tags and their rel
 
 Tags are the primary mechanism for how users navigate AO3. The Tag class was created to better facilitate analysis of Works by their tags.
 
-To load a tag, simple declare an instance of the Tag class with the given name. Once loaded, a Tag will populate metadata such as its parent tags, subtags, children, synonyms, categories, etc. You can view all of this with the `metadata()` property.
+To load a tag, simple declare an instance of the Tag class with the given name. Once loaded, a Tag will populate metadata such as its parent tags, subtags, children, synonyms, categories, etc. You can view all of this with the `metadata` property.
+
+```
+Tag("Jack Frost").metadata
+```
+
+```
+{'name': 'Jack Frost',
+ 'category': 'Character',
+ 'date_queried': '2023-12-13 03:48:44.860964',
+ 'loaded': True,
+ 'query_error': False,
+ 'canonical': True,
+ 'parent_names': ['No Fandom'],
+ 'metatag_names': [],
+ 'subtag_names': ['Jack Frost (Folklore)',
+  'Jack Frost (StarCraft)',
+  'Jack Frost (Rankin/Bass)',
+  'Jack Frost (Santa Clause)',
+  'Jack Frost (Guardians of Childhood)',
+  'Jack Frost (Shin Megami Tensei)',
+  'Jack Frost (Rainbow Magic)',
+  'Jack Frost (Jack Frost Movie 1998)'],
+ 'immediate_metatag_names': [],
+ 'immediate_subtag_names': ['Jack Frost (Folklore)',
+  'Jack Frost (StarCraft)',
+  'Jack Frost (Rankin/Bass)',
+  'Jack Frost (Santa Clause)',
+  'Jack Frost (Guardians of Childhood)',
+  'Jack Frost (Shin Megami Tensei)',
+  'Jack Frost (Rainbow Magic)',
+  'Jack Frost (Jack Frost Movie 1998)'],
+ 'synonym_names': [],
+ 'children': {'Relationship': ['Jack Frost & Snow Miser',
+   'Snow Miser & Jack Frost']}}
+```
 
 ```
 a = Tag("SHAKESPEARE William - Works",load=True)
@@ -301,56 +336,89 @@ print(Tag("Magic the Gathering"))
 <Tag [Magic: The Gathering (Card Game)]>
 ```
 
-Cacheing limits the number of queries to AO3 when parsing data of similar tags. The primary use case for the Tag class is the `Works.inherited_metatags` property.
+Cacheing limits the number of queries to AO3 when parsing data of similar tags. The primary use case for the Tag class is the `Works.search_tags` property.
 
-Metatags are inherited through This method takes all listed tags of a work and recursively queries AO3 for all metatags, then returns all canonical tags found.
+When searching on the archive, a work can be found by all of its tags as well as any metatags those tags have. This method takes all listed tags of a work and queries AO3 for all metatags, then returns the names of all canonical tags found.
 
 ```
 w = Work("49394584")
-for tag in Work("49394584").tags_unified:
-    print(tag)
+w.search_tags
 ```
 
 ```
-<Tag [Teen And Up Audiences]>
-<Tag [Creator Chose Not To Use Archive Warnings]>
-<Tag [F/M]>
-<Tag [M/M]>
-<Tag [Wolverine And The X-Men (Cartoon)]>
-<Tag [Wanda Maximoff/Kurt Wagner]>
-<Tag [Original Female Character(s)/Original Male Character(s)]>
-<Tag [Kurt Wagner]>
-<Tag [Wanda Maximoff]>
-<Tag [Original Characters]>
-<Tag [Maxine Wagner (X-Men OC)]>
-<Tag [Rento Keniuchio (X-Men OC)]>
-<Tag [Hatsuko Keniuchio (X-Men OC)]>
-<Tag [Cooper Clarkson (X-Men OC)]>
+['Teen And Up Audiences',
+ 'F/M',
+ 'Wanda Maximoff/Kurt Wagner',
+ 'M/M',
+ 'Wolverine And The X-Men (Cartoon)',
+ 'X-Men - All Media Types',
+ 'Marvel',
+ 'Wolverine and the X-Men - All Media Types',
+ 'Kurt Wagner',
+ 'Kurt',
+ 'Original Female Character(s)/Original Male Character(s)',
+ 'Original Character(s)/Original Character(s)',
+ 'Wanda Maximoff',
+ 'Wanda',
+ 'Original Characters']
+```
+
+A Tag object's parent and metatags can be found recursively using utils.get_inherited_tags.
+
+```
+utils.get_inherited_tags(Tag("James Howlett"))
+```
+
+```
+[<Tag [Logan (X-Men)]>,
+ <Tag [Weapon X (Comics)]>,
+ <Tag [Logan]>,
+ <Tag [Nick Fury: Agent of S.H.I.E.L.D.]>,
+ <Tag [No Fandom]>,
+ <Tag [Wolverine (Comics)]>,
+ <Tag [No Media]>,
+ <Tag [Wolverine and the X-Men (Comics)]>,
+ <Tag [X-Men: The Animated Series (Cartoon 1992)]>,
+ <Tag [X-Force (Comics)]>,
+ <Tag [Ultimates (Marvel Comics)]>,
+ <Tag [Marvel Noir]>,
+ <Tag [Marvel vs. Capcom (Video Games)]>,
+ <Tag [Deadpool (Video Game 2013)]>,
+ <Tag [Wolverine (Movies)]>,
+ <Tag [X-Men (Alternate Timeline Movies)]>,
+ <Tag [Marvel (Comics)]>,
+ <Tag [Uncanny Avengers]>,
+ <Tag [X-Men Evolution]>,
+ <Tag [X-Men - All Media Types]>,
+ <Tag [X-Men (Comicverse)]>,
+ <Tag [X-Men (Original Timeline Movies)]>,
+ <Tag [Avengers (Comics)]>,
+ <Tag [Marvel 616]>,
+ <Tag [Marvel]>,
+ <Tag [Movies]>,
+ <Tag [Cartoons & Comics & Graphic Novels]>,
+ <Tag [Video Games]>,
+ <Tag [Wolverine and the X-Men - All Media Types]>,
+ <Tag [Marvel Ultimate Universe]>,
+ <Tag [X-23 (Comic)]>,
+ <Tag [Marvel's Midnight Suns (Video Game)]>,
+ <Tag [X-Men (Movieverse)]>,
+ <Tag [TV Shows]>,
+ <Tag [X-Men (Ultimateverse)]>,
+ <Tag [Deadpool - All Media Types]>]
+```
+
+To import and export the Tag cache, there are safe wrappers for 'dumps()' and 'loads()' that maintain a lock on the cache. 
+
+```
+data = Tag.dumps()
+
+Tag.deleteCache()
+
+Tag.loads(data)
 ```
 
 
-```
-for tag in w.inherited_metatags:
-    print(tag)
-```
-
-```
-<Tag [Teen And Up Audiences]>
-<Tag [F/M]>
-<Tag [M/M]>
-<Tag [Wolverine And The X-Men (Cartoon)]>
-<Tag [Wanda Maximoff/Kurt Wagner]>
-<Tag [Original Female Character(s)/Original Male Character(s)]>
-<Tag [Kurt Wagner]>
-<Tag [Wanda Maximoff]>
-<Tag [Original Characters]>
-<Tag [Wolverine and the X-Men - All Media Types]>
-<Tag [Original Character(s)/Original Character(s)]>
-<Tag [Kurt]>
-<Tag [Wanda]>
-<Tag [X-Men - All Media Types]>
-<Tag [Marvel]>
-```
 
 
 ## Extra
