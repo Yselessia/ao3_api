@@ -121,11 +121,11 @@ class Work:
                 if preface_group is None:
                     continue
                 title = preface_group.find("h3", {"class": "title"})
+                id_ = int(title.a["href"].split("/")[-1])
                 if title is None:
                     continue
                 else:
                     title = str(title)
-                id_ = int(title.a["href"].split("/")[-1])
                 c = Chapter(id_, self, self._session, False)
                 c._soup = chapter
                 self.chapters.append(c)
@@ -679,7 +679,7 @@ class Work:
 
         language = self._soup.find("dd", {"class": "language"})
         if language is not None:
-            return language.string.strip()
+            return str(language.string.strip())
         else:
             return "Unknown"
 
@@ -759,7 +759,7 @@ class Work:
         tags = []
         if html is not None:
             for tag in html.find_all("li"):
-                tags.append(tag.a.string)
+                tags.append(str(tag.a.string))
         return tags
 
     @cached_property
@@ -774,7 +774,7 @@ class Work:
         characters = []
         if html is not None:
             for character in html.find_all("li"):
-                characters.append(character.a.string)
+                characters.append(str(character.a.string))
         return characters
 
     @cached_property
@@ -789,7 +789,7 @@ class Work:
         relationships = []
         if html is not None:
             for relationship in html.find_all("li"):
-                relationships.append(relationship.a.string)
+                relationships.append(str(relationship.a.string))
         return relationships
 
     @cached_property
@@ -804,7 +804,7 @@ class Work:
         fandoms = []
         if html is not None:
             for fandom in html.find_all("li"):
-                fandoms.append(fandom.a.string)
+                fandoms.append(str(fandom.a.string))
         return fandoms
 
     @cached_property
@@ -819,7 +819,7 @@ class Work:
         categories = []
         if html is not None:
             for category in html.find_all("li"):
-                categories.append(category.a.string)
+                categories.append(str(category.a.string))
         return categories
 
     @cached_property
@@ -834,7 +834,7 @@ class Work:
         warnings = []
         if html is not None:
             for warning in html.find_all("li"):
-                warnings.append(warning.a.string)
+                warnings.append(str(warning.a.string))
         return warnings
 
     @cached_property
@@ -847,7 +847,7 @@ class Work:
 
         html = self._soup.find("dd", {"class": "rating tags"})
         if html is not None:
-            rating = html.a.string
+            rating = str(html.a.string)
             return rating
         return None
 
