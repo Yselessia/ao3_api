@@ -628,7 +628,7 @@ def tagname_from_urlext(url):
     
     return url.replace('*s*',r'/').replace('*a*',r'&').replace('*d*',r'.').replace('*q*',r'?').replace('*h*',r'#')
 
-def get_inherited_tags(tag_list,parents=True,metatags=True,characters_from_relationships=False,max_workers=None):
+def get_inherited_tags(tag_list,parents=True,metatags=True,characters_from_relationships=False,max_workers=None,load_all=False):
     '''
     Given a list of tags (maybe a work?), return all parent and/or meta tags recursively via multiple processes
     E.g. Given ['Alice Cullen/Harry Potter'] with metatags=False it will return a list of tag objects for
@@ -652,6 +652,9 @@ def get_inherited_tags(tag_list,parents=True,metatags=True,characters_from_relat
     def worker_function(tag):
         if not tag.loaded:
             tag.reload()
+        if tag.query_error:
+            raise UnexpectedResponseError(f"Query for {tag} returned Error {tag.query_error}. Cannot parse tag data.", stacklevel=2)
+            
                 
         out = []
         # Check if the current tag was merged.
@@ -708,7 +711,7 @@ def get_inherited_tags(tag_list,parents=True,metatags=True,characters_from_relat
                     for parent_tag in parent_tags:
                         if parent_tag not in visited and parent_tag not in futures_to_tags.values():
                             # Only enqueue if we need to
-                            if parents:
+                            if parents or load_all:
                                 future_visit.add(parent_tag)
                             else:
                                 # Don't add visited tags to queue, just visit them

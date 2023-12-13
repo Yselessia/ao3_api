@@ -30,6 +30,17 @@ class Tag:
     _cache_lock = threading.Lock() # Lock for cache access
     _cache_counter = 0
     
+    _lazy_evaluation = False          
+    
+    @classmethod
+    def lazyEvaluation(cls,val):
+        '''
+        Sets whether the reload method will automatically parse the data,
+        then delete the downloaded webpage.
+        False by default. 
+        '''
+        cls._lazy_evaluation = val
+    
     @classmethod
     def getCacheAccesses(cls):
         return cls._cache_counter
@@ -138,15 +149,7 @@ class Tag:
         
         if load:
             self.reload()
-            # if merged, load the tag it was merged with
-            if self.merged_name:
-                merged = self.get_merged()
-                
-                # if not merged, point any tags that have been merged with it to this one in memory
-                Tag._addSynonymsToCache(self.merged_name)
-            elif len(self.synonym_names)>0:
-                # if not merged, point any tags that have been merged with it to this one in memory
-                Tag._addSynonymsToCache(self)
+
 
             
     def __getnewargs__(self):
@@ -181,7 +184,7 @@ class Tag:
         return f"<Tag [{self.name}]>"
     
     @threadable.threadable
-    def reload(self, load_chapters=True):
+    def reload(self):
         """
         Loads information about this work.
         This function is threadable.
@@ -194,18 +197,62 @@ class Tag:
                 if attr in self.__dict__:
                     delattr(self, attr)
         
+        self.date_queried = datetime.now()
         try:
             self._soup = self.request(f"https://archiveofourown.org/tags/{self.url}")
         except Exception as exc:
             print('%r generated an exception: %s' % (self, exc))
         
-        if "Error 404" in self._soup.find("h2", {"class", "heading"}).text:
+        if self.query_error:
+            if not Tag._lazy_evaluation:
+                # Get all the metadata and delete the BeautifulSoup
+                self.parse()
             raise utils.InvalidIdError("Cannot find work")
         
-        if self.merged_name:
-            warnings.warn(f"<{self.name}> has been merged with {self.get_merged()}.", stacklevel=2)
         
-        self.date_queried = datetime.now()
+        # if merged, load the tag it was merged with
+        if self.merged_name:
+            warnings.warn(f"<{self.name}> has been merged with {self.get_merged()}. Redirecting cache to new entry", stacklevel=2)
+            merged = self.get_merged()
+            
+            # Load merged and add its syns if need be
+            # if not merged, point any tags that have been merged with it to this one in memory
+            if not merged.loaded:
+                merged.reload()
+                Tag._addSynonymsToCache(merged)
+                
+            # occasionally, the list of synonyms isn't complete.
+            # append this tag to the list if it's not
+            if self.name not in merged.synonym_names:
+                merged.synonym_names.append(self.name)
+
+            # some tags don't show up in the main syn page e.g. "https://archiveofourown.org/tags/wwii%20supernatural"
+            # Add point this tag's name to the merged tag in the cache
+            with Tag._cache_lock:
+                Tag._cache[self.name] = merged
+                
+        elif len(self.synonym_names)>0:
+            # if not merged, point any tags that have been merged with it to this one in memory
+            Tag._addSynonymsToCache(self)
+
+        if not Tag._lazy_evaluation:
+            # Get all the metadata and delete the BeautifulSoup
+            self.parse()
+            
+        
+        
+    @cached_property
+    def query_error(self):
+        if isinstance(self._soup,BeautifulSoup):
+            if self._soup.find("div", {"class","flash error"}) is not None:
+                return 303
+            h = self._soup.find("h2", {"class", "heading"}).text
+            if "Error 404" in h:
+                return 404
+            else:
+                return False
+        else:
+            return False
     
     # Purely for testing
     def addParentTagnames(self,tagname_list):
@@ -222,14 +269,16 @@ class Tag:
         # Would load from soup in final
         if not self.loaded:
             raise utils.UnloadedError("Cannot load parent tags if Tag not loaded")
+        elif self.query_error:
+            raise utils.UnexpectedResponseError(f"Cannot load parent tags if Tag query threw Error {self.query_error}")
         else:
             html = self._soup.find("div", {"class": re.compile("(parent|parent fandom) listbox group")})
             if html is None:
                 return []
-            return [t.text for t in html.find_all('li')]
+            return [str(t.text) for t in html.find_all('li')]
 
 
-    def get_parents(self):
+    def get_parents(self,immediate=False):
         '''
         Returns the unique metatags after handling merges.
         When a Tag is found to be merged, the cache redirects the old
@@ -238,7 +287,13 @@ class Tag:
         '''
         if not self.parent_names:
             return []
+        if immediate:            
+            return list(set(map(lambda t: Tag(t,load=False,session=self._session),self.immediate_parent_names)))
         return list(set(map(lambda t: Tag(t,load=False,session=self._session),self.parent_names)))
+    
+    @property
+    def parsed(self):
+        return isinstance(self._soup,bool)
     
     @property
     def loaded(self):
@@ -248,13 +303,17 @@ class Tag:
     def category(self):
         if not self.loaded:
             raise utils.UnloadedError("Cannot load category if Tag not loaded")
+        elif self.query_error:
+            raise utils.UnexpectedResponseError(f"Cannot load category if Tag query threw Error {self.query_error}")
         else:
-            return re.search(r'This tag belongs to the (.+) Category\.',self._soup.find("div",{'class':'tag home profile'}).find('p').text).group(1)
+            return str(re.search(r'This tag belongs to the (.+) Category\.',self._soup.find("div",{'class':'tag home profile'}).find('p').text).group(1))
     
     @cached_property
     def canonical(self):
         if not self.loaded:
             raise utils.UnloadedError("Cannot tell if tag is canonical if Tag not loaded")
+        elif self.query_error:
+            raise utils.UnexpectedResponseError(f"Cannot tell if tag is canonical if Tag query threw Error {self.query_error}")
         else:
             # On tag pages, tags are still listed as common not canonical.
             # The method matches the terminology found elsewhere
@@ -272,13 +331,38 @@ class Tag:
         '''
         if not self.loaded:
             raise utils.UnloadedError("Cannot load metatags if Tag not loaded")
+        elif self.query_error:
+            raise utils.UnexpectedResponseError(f"Cannot load metatags if Tag query threw Error {self.query_error}")
         else:
             html = self._soup.find("div", {"class": "meta listbox group"})
             if html is None:
                 return []
             # If statement to check if on the upper level of the tree
             #return [t.a.text for t in html.ul.children if t.contents[0].name=='a']
-            return [t.text for t in html.find_all("a")]
+            return [str(t.text) for t in html.find_all("a")]
+    
+    #@cached_property
+    #def immediate_parent_names(self):
+        '''
+        Returns the names of all metatags immediately above this one in the hierarchy.
+
+        Returns
+        -------
+        list: list of metatags names.
+
+        '''
+        if not self.loaded:
+            raise utils.UnloadedError("Cannot load parents if Tag not loaded")
+        elif self.query_error:
+            raise utils.UnexpectedResponseError(f"Cannot load parents if Tag query threw Error {self.query_error}")
+        else:
+            html = self._soup.find("div", {"class": re.compile("(parent|parent fandom) listbox group")})
+            if html is None:
+                return []
+            # If statement to check if on the upper level of the tree
+            return [str(t.a.text) for t in html.ul.children if t.contents[0].name=='a']
+            #return [t.text for t in html.find_all("a")]
+
     
     @cached_property
     def immediate_metatag_names(self):
@@ -292,12 +376,14 @@ class Tag:
         '''
         if not self.loaded:
             raise utils.UnloadedError("Cannot load metatags if Tag not loaded")
+        elif self.query_error:
+            raise utils.UnexpectedResponseError(f"Cannot load metatags if Tag query threw Error {self.query_error}")
         else:
             html = self._soup.find("div", {"class": "meta listbox group"})
             if html is None:
                 return []
             # If statement to check if on the upper level of the tree
-            return [t.a.text for t in html.ul.children if t.contents[0].name=='a']
+            return [str(t.a.text) for t in html.ul.children if t.contents[0].name=='a']
             #return [t.text for t in html.find_all("a")]
 
 
@@ -320,13 +406,21 @@ class Tag:
         Returns the names of all tags made synonymous to this one.
         Once a tag has been merged, it becomes deprecated. The Tag cache automatically prunes
         these, so this method only returns the names.
+        
+        If a tag is later made synonymous to another tag, its list of synonyms will
+        be updated to include the new name.
         -------
-        list: list of unloaded synonym Tags.
+        list: list of synonym names.
         '''
-        html = self._soup.find("div", {"class": "synonym listbox group"})
-        if html is None:
-            return []
-        return [t.text for t in html.find_all('li')]
+        if not self.loaded:
+            raise utils.UnloadedError("Cannot load synonyms if Tag not loaded")
+        elif self.query_error:
+            raise utils.UnexpectedResponseError(f"Cannot load synonyms if Tag query threw Error {self.query_error}")
+        else:
+            html = self._soup.find("div", {"class": "synonym listbox group"})
+            if html is None:
+                return []
+            return [str(t.text) for t in html.find_all('li')]
     
     @cached_property
     def merged_name(self):
@@ -334,14 +428,16 @@ class Tag:
         Checks if the current tag has been merged with another. If it has, it returns that Tag's name.
         '''
         if not self.loaded:
-            raise utils.UnloadedError("Cannot load parent tags if Tag not loaded")
+            raise utils.UnloadedError("Cannot load merges if Tag not loaded")
+        elif self.query_error:
+            raise utils.UnexpectedResponseError(f"Cannot load merges if Tag query threw Error {self.query_error}")
         else:
             html = self._soup.find("div", {"class": "merger module"})
             if html is None:
                 return False
             else:
-                search = re.search(r'has been made a synonym of (.+). Works and bookmarks tagged with',html.p.text)
-                return (search.group(1))
+                search = re.search(r'has been made a synonym of (.+). Works and bookmarks tagged with',str(html.p.text))
+                return (str(search.group(1)))
     
 
     def get_merged(self):
@@ -369,6 +465,8 @@ class Tag:
         '''
         if not self.loaded:
             raise utils.UnloadedError("Cannot load child tags if Tag not loaded")
+        elif self.query_error:
+            raise utils.UnexpectedResponseError(f"Cannot load child tags if Tag query threw Error {self.query_error}")
         else:
             html = self._soup.find("div", {"class": "child listbox group"})
             
@@ -378,7 +476,7 @@ class Tag:
                 return children_dict
             
             children_html = html.find_all("div", {"class": re.compile("(.+) listbox group")})
-            categories = [t.attrs['class'][0][0:-1].capitalize() for t in children_html]
+            categories = [str(t.attrs['class'][0][0:-1]).capitalize() for t in children_html]
             # Freeform Category is now the Additional Tags Category, so make the change here
             try:
                 i=categories.index("Freeform")
@@ -388,7 +486,7 @@ class Tag:
             
             
             for (category,cat_html) in zip(categories,children_html):
-                children_dict[category]=[t.text for t in cat_html.find_all('li')]
+                children_dict[category]=[str(t.text) for t in cat_html.find_all('li')]
                 if len(children_dict[category]) >= 300:
                     warnings.warn(f"The <{category}> child tags of <{self.name}> were truncated to 300.\n Additional tags may exist.", stacklevel=2)
             return children_dict
@@ -426,13 +524,15 @@ class Tag:
         '''
         if not self.loaded:
             raise utils.UnloadedError("Cannot load subtags if Tag not loaded")
+        elif self.query_error:
+            raise utils.UnexpectedResponseError(f"Cannot load subtags if Tag query threw Error {self.query_error}")
         else:
             html = self._soup.find("div", {"class": "sub listbox group"})
             if html is None:
                 return []
             # If statement to check if on the upper level of the tree
             #return [t.a.text for t in html.ul.children if t.contents[0].name=='a']
-            return [t.text for t in html.find_all("a")]
+            return [str(t.text) for t in html.find_all("a")]
     
     
     @cached_property
@@ -457,12 +557,14 @@ class Tag:
         '''
         if not self.loaded:
             raise utils.UnloadedError("Cannot load subtags if Tag not loaded")
+        elif self.query_error:
+            raise utils.UnexpectedResponseError(f"Cannot load subtags if Tag query threw Error {self.query_error}")
         else:
             html = self._soup.find("div", {"class": "sub listbox group"})
             if html is None:
                 return []
             # If statement to check if on the upper level of the tree
-            return [t.a.text for t in html.ul.children if t.contents[0].name=='a']
+            return [str(t.a.text) for t in html.ul.children if t.contents[0].name=='a']
             #return [t.text for t in html.find_all("a")]
     
     def get_subtags(self,immediate=False):
@@ -491,9 +593,10 @@ class Tag:
     def metadata(self):
         metadata = {}
         
-        if self.loaded:
+        if self.loaded and not self.query_error:
             normal_fields = (
                 "loaded",
+                "query_error",
                 "canonical"
             )
             string_fields = (
@@ -505,14 +608,14 @@ class Tag:
                 "parent_names",
                 "metatag_names",
                 "subtag_names",
+                "immediate_metatag_names",
+                "immediate_subtag_names",
                 "synonym_names"
-            )
-            string_dict_fields = (
-                "children_names"
             )
         else:
             normal_fields = (
-                "loaded"
+                "loaded",
+                "query_error"
             )
             string_fields = (
                 "name"
@@ -535,7 +638,7 @@ class Tag:
             except AttributeError:
                 pass
 
-        if self.loaded:
+        if self.loaded and not self.query_error:
             d = self.children_names
             metadata["children"] = dict(zip(list(d.keys()),list(map(lambda l: list(map(str,l)),d.values()))))
 
@@ -568,3 +671,10 @@ class Tag:
             warnings.warn("This work is very big and might take a very long time to load.", stacklevel=2)
         soup = BeautifulSoup(req.content, "lxml")
         return soup
+
+    def parse(self):
+        if self.loaded:
+            # Compute all cached properties involving _soup
+            _ = self.metadata
+            # Override _soup to make loaded read as true
+            self._soup = True

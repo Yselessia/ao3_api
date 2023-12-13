@@ -47,6 +47,9 @@ class Work:
     def __eq__(self, other):
         return isinstance(other, __class__) and other.id == self.id
     
+    def __hash__(self):
+        return hash(self.id)
+    
     def __getstate__(self):
         d = {}
         for attr in self.__dict__:
@@ -1012,5 +1015,5 @@ class Work:
         temp_soup = self.request(f"https://archiveofourown.org/works/{self.id}/navigate?view_adult=true&view_full_work=true")
         if "Error 404" in self._soup.find("h2", {"class", "heading"}).text:
             raise utils.InvalidIdError("Cannot find work")
-        dts = soup.find("ol", {"class":"chapter index group"}).find_all("span",{"class":"datetime"})
+        dts = self._soup.find("ol", {"class":"chapter index group"}).find_all("span",{"class":"datetime"})
         return [datetime(*list(map(int, dp.text[1:-1].split("-")))) for dp in dts]

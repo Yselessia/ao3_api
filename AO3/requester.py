@@ -53,48 +53,6 @@ class Requester:
         print(f"Rate limited. Waiting {out} seconds. You may want to adjust the rate limiter.")
         return out
 
-    def request2(self, *args, **kwargs):
-        using_session = False
-        if "session" in kwargs:
-            using_session = True
-            sess = kwargs["session"]
-            del kwargs["session"]
-            
-        unfinished_request = True
-        with self.wait_condition:
-            while unfinished_request:
-                # Check if we're waiting
-                if self.waiting:
-                    self.wait_condition.wait()
-                    
-                # See if we're on pace for rate limit.
-                # If not, wait
-                self.check_limit()
-                # Make the request
-                if using_session:
-                    req = sess.request(*args, **kwargs)
-                else:
-                    req = requests.request(*args, **kwargs)
-                
-                self.total+=1
-                # Check for condition
-                if req.status_code == 429:
-                    # Rate limited,
-                    self.waiting = True
-                    wait_time = int(req.headers.get("Retry-After"))
-                    c_time = time.time()
-                    print(f"Rate limited. Waiting {wait_time} seconds. You may want to adjust the rate limiter.")
-                    print(f"{self.total} requests made in about {c_time-self.time_start} seconds. Appx rate = {self.total/(c_time-self.time_start)}")
-                    self.total = 0
-                    time.sleep(wait_time)
-                    self.waiting = False
-                    self.wait_condition.notify_all()
-                else:
-                    unfinished_request = False
-                    
-        
-        return req
-
     def request(self, *args, **kwargs):
         """Requests a web page once enough time has passed since the last request
         
@@ -104,9 +62,6 @@ class Requester:
         Returns:
             requests.Response: Response object
         """
-        #with self._lock:
-        # Minimum wait time between requests
-        # jittered
         self.total+=1
         req = self.request_helper(*args, **kwargs)
                 

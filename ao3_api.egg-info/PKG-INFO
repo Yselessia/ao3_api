@@ -3,8 +3,8 @@ Name: ao3-api
 Version: 2.4.0
 Summary: An unofficial AO3 (archiveofourown.org) API
 Home-page: https://github.com/jtrainrva/ao3_api
-Author: Joseph Burris
-Author-email: jtrainrva@gmail.com
+Author: Francisco Rodrigues
+Author-email: francisco.rodrigues0908@gmail.com
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
