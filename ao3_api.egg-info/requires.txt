@@ -3,4 +3,3 @@ lxml
 requests
 ratelimit
 backoff
-blosc

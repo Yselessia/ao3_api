@@ -292,7 +292,7 @@ Tags are the primary mechanism for how users navigate AO3. The Tag class was cre
 To load a tag, simple declare an instance of the Tag class with the given name. Once loaded, a Tag will populate metadata such as its parent tags, subtags, children, synonyms, categories, etc. You can view all of this with the `metadata` property.
 
 ```
-AO3.Tag("Jack Frost").metadata
+Tag("Jack Frost").metadata
 ```
 
 ```
@@ -380,7 +380,7 @@ w.search_tags
 A Tag object's parent and metatags can be found recursively using utils.get_inherited_tags.
 
 ```
-AO3.utils.get_inherited_tags(AO3.Tag("James Howlett"))
+utils.get_inherited_tags(Tag("James Howlett"))
 ```
 
 ```
@@ -420,6 +420,16 @@ AO3.utils.get_inherited_tags(AO3.Tag("James Howlett"))
  <Tag [TV Shows]>,
  <Tag [X-Men (Ultimateverse)]>,
  <Tag [Deadpool - All Media Types]>]
+```
+
+To import and export the Tag cache, there are safe wrappers for 'dumps()' and 'loads()' that maintain a lock on the cache. 
+
+```
+data = Tag.dumps()
+
+Tag.deleteCache()
+
+Tag.loads(data)
 ```
 
 

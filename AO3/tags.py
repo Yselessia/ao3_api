@@ -9,7 +9,6 @@ import re
 from pathlib import Path
 
 import pickle
-import blosc
 
 from . import threadable, utils
 import os
