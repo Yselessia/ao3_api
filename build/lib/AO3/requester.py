@@ -9,16 +9,7 @@ import datetime
 
 RATE = .2
 PERIOD = 150
-EXP_LAMBDA = 0
 
-def setPeriod(period):
-    PERIOD=period
-
-def setRate(rate):
-    RATE=rate
-    
-def setJitter(exp_lambda):
-    EXP_LAMBDA = exp_lambda
 
 class RateLimitedError(Exception):
     def __init__(self, message, errors=[]):
@@ -49,6 +40,11 @@ class Requester:
         self.waiting = False
         self.wait_condition = threading.Condition()
         
+        self._explambda = 0
+    
+    def setExpLambda(self, value):
+        self._explambda = value    
+    
     def setRQTW(self, value):
         self._rqtw = value
         
@@ -69,8 +65,8 @@ class Requester:
         Returns:
             requests.Response: Response object
         """
-        if EXP_LAMBDA>0:
-            time.sleep(expovariate(EXP_LAMBDA))
+        if self._explambda>0:
+            time.sleep(expovariate(self._explambda))
         
         self.total+=1
         req = self.request_helper(*args, **kwargs)
