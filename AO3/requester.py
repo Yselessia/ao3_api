@@ -15,7 +15,7 @@ def setPeriod(period):
     PERIOD=period
 
 def setRate(rate):
-    PERIOD=rate
+    RATE=rate
     
 def setJitter(exp_lambda):
     EXP_LAMBDA = exp_lambda
