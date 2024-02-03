@@ -16,7 +16,6 @@ _LANGUAGES = None
 
 AO3_AUTH_ERROR_URL = "https://archiveofourown.org/auth_error"
 
-
 class LoginError(Exception):
     def __init__(self, message, errors=[]):
         super().__init__(message)

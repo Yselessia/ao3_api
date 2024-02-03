@@ -9,9 +9,16 @@ import datetime
 
 RATE = .2
 PERIOD = 150
+EXP_LAMBDA = 0
 
-def setCalls(num_calls):
-    CALLS=num_calls
+def setPeriod(period):
+    PERIOD=period
+
+def setRate(rate):
+    PERIOD=rate
+    
+def setJitter(exp_lambda):
+    EXP_LAMBDA = exp_lambda
 
 class RateLimitedError(Exception):
     def __init__(self, message, errors=[]):
@@ -62,6 +69,9 @@ class Requester:
         Returns:
             requests.Response: Response object
         """
+        if EXP_LAMBDA>0:
+            time.sleep(expovariate(EXP_LAMBDA))
+        
         self.total+=1
         req = self.request_helper(*args, **kwargs)
                 
