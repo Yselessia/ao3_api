@@ -12,6 +12,7 @@ AO3/requester.py
 AO3/search.py
 AO3/series.py
 AO3/session.py
+AO3/tag_search.py
 AO3/tags.py
 AO3/threadable.py
 AO3/users.py

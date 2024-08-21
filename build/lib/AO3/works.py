@@ -10,6 +10,8 @@ from .comments import Comment
 from .requester import requester
 from .users import User
 
+MAX_WORKERS = None
+
 class Work:
     """
     AO3 work object
@@ -965,6 +967,9 @@ class Work:
         """
 
         return string.replace(",", "")
+
+    def set_max_workers(workers):
+        MAX_WORKERS = workers
 
     @cached_property
     def tags_unified(self):

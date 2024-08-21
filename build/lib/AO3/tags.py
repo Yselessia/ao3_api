@@ -146,6 +146,11 @@ class Tag:
         self._soup = None
         self.date_queried = None
         
+        # There tags can only be updated from the tag_search for not
+        # Maybe AO3 will start putting this info on the Tag page proper at some point
+        self.works = None
+        self.date_tag_search = None
+        
         if load:
             self.reload()
 
@@ -183,7 +188,7 @@ class Tag:
         return f"<Tag [{self.name}]>"
     
     @threadable.threadable
-    def reload(self):
+    def reload(self,overwrite_tag_search=False):
         """
         Loads information about this work.
         This function is threadable.
@@ -194,6 +199,12 @@ class Tag:
         for attr in self.__class__.__dict__:
             if isinstance(getattr(self.__class__, attr), cached_property):
                 if attr in self.__dict__:
+                    delattr(self, attr)
+        # Delete tag Search fields if necessary
+        if overwrite_tag_search:
+            tag_search_attrs = ['works','date_tag_search']
+            for attr in tag_search_attrs:
+                if attr in self.__class__.__dict__:
                     delattr(self, attr)
         
         self.date_queried = datetime.now()
@@ -340,8 +351,8 @@ class Tag:
             #return [t.a.text for t in html.ul.children if t.contents[0].name=='a']
             return [str(t.text) for t in html.find_all("a")]
     
-    #@cached_property
-    #def immediate_parent_names(self):
+    @cached_property
+    def immediate_parent_names(self):
         '''
         Returns the names of all metatags immediately above this one in the hierarchy.
 
@@ -596,12 +607,14 @@ class Tag:
             normal_fields = (
                 "loaded",
                 "query_error",
-                "canonical"
+                "canonical",
+                "works"
             )
             string_fields = (
                 "name",
                 "category",
-                "date_queried"
+                "date_queried",
+                "date_tag_search"
             )
             string_list_fields = (
                 "parent_names",
@@ -616,8 +629,13 @@ class Tag:
                 "loaded",
                 "query_error"
             )
+            # String fields can be update through tag_search query now
             string_fields = (
-                "name"
+                "name",
+                "canonical",
+                "category",
+                "works",
+                "date_tag_search"
             )
             string_list_fields = ()
         for field in string_fields:

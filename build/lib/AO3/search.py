@@ -214,8 +214,7 @@ def search(
         query.add_field(f"work_search[sort_direction]={sort_direction}")
     if revised_at != "":
         query.add_field(f"work_search[revised_at]={revised_at}")
-
-    url = f"https://archiveofourown.org/works/search?{query.string}"
+    url = f"https://archiveofourown.org/works/search?commit=Search&{query.string}"
 
     if session is None:
         req = requester.request("get", url)
