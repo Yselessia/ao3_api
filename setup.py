@@ -8,9 +8,9 @@ with open("requirements.txt", "r") as fh:
 
 setuptools.setup(
     name="ao3-api",
-    version="2.4.0",
-    author="Francisco Rodrigues",
-    author_email="francisco.rodrigues0908@gmail.com",
+    version="2.5.0",
+    author="Joseph Buris",
+    author_email="jtrainrva@gmail.com",
     description="An unofficial AO3 (archiveofourown.org) API",
     python_requires='>=3.8',
     install_requires=requires,

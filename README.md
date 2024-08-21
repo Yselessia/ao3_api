@@ -418,7 +418,45 @@ Tag.deleteCache()
 Tag.loads(data)
 ```
 
+## Tag Search
 
+To search for works, you can either use the `AO3.tag_search()` function and parse the BeautifulSoup object returned yourself, or use the `AO3.TagSearch` class to automatically do that for you.
+
+```py3
+import AO3
+search = AO3.TagSearch(
+    canonical=True,
+    fandoms='Rosencrantz & Guildenstern are Dead - Stoppard',
+    category='Character',
+    sort_column='uses',
+    sort_direction='desc')
+search.update()
+print(search.total_results)
+for result in search.results:
+  print(result)
+```
+
+```
+13
+<Tag [Horatio (Hamlet)]>
+<Tag [Ophelia (Hamlet)]>
+<Tag [Hamlet (Hamlet)]>
+<Tag [Claudius (Hamlet)]>
+<Tag [Gertrude (Hamlet)]>
+<Tag [Guildenstern (Hamlet)]>
+<Tag [Rosencrantz (Hamlet)]>
+<Tag [Polonius (Hamlet)]>
+<Tag [Fortinbras (Hamlet)]>
+<Tag [Rosencrantz and Guildenstern (Hamlet)]>
+<Tag [Alfred (Rosencrantz & Guildenstern)]>
+<Tag [The Players (Hamlet)]>
+<Tag [First Player | Player King (Hamlet)]>
+```
+
+Tag usage data and date of search are included with the Tag object in the cache after a tag search. You can load the rest of the tag data as normal with the `reload` method without overwriting the usage data. To get more then the first 50 tags, change the page number using 
+```py3
+search.page = 2
+```
 
 
 ## Extra
