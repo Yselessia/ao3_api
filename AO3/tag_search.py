@@ -197,7 +197,6 @@ def tag_search(
         query.add_field(f"tag_search[sort_direction]={sort_direction}")
 
     url = f"https://archiveofourown.org/tags/search?commit=Search+Tags&{query.string}"
-    print(url)
     if session is None:
         req = requester.request("get", url)
     else:
