@@ -57,7 +57,7 @@ class TagSearch:
         self.fandoms=fandoms
         if category not in ['Fandom', 'Character', 'Relationship', 'Freeform', 'ArchiveWarning', 'Category', 'Rating','']:
             raise ImproperSearchError("Tag Category must be 'Fandom', 'Character', 'Relationship', 'Freeform', 'ArchiveWarning', 'Category', 'Rating', or ''.")
-        self.tag_category = category
+        self.category = category
         self.canonical = canonical
         if sort_column not in ['uses', 'created_at', 'name']:
             raise ImproperSearchError("Sort Column must be 'uses', 'created_at' or 'name.")
@@ -84,7 +84,7 @@ class TagSearch:
             tag_name=self.tag_name,
             fandoms=self.fandoms,
             page=self.page,
-            tag_category=self.tag_category,
+            category=self.category,
             canonical=self.canonical,
             sort_column=self.sort_column,
             sort_direction=self.sort_direction,
@@ -105,7 +105,7 @@ class TagSearch:
         for tag in results.find_all("li"):
                
             canonical =  tag.find("span",{'class':'canonical'}) is not None
-            tag_category, _, n_works = re.findall(r"([A-Za-z]+): (.+) \u200e\((\d+)\)",tag.find("span").getText())[0]
+            category, _, n_works = re.findall(r"([A-Za-z]+): (.+) \u200e\((\d+)\)",tag.find("span").getText())[0]
             n_works = int(n_works)
             
             tag_name = tagname_from_href(tag.find("span").a['href'])
@@ -118,10 +118,10 @@ class TagSearch:
                 # Set what we do know, but don't update loaded status
                 setattr(c_tag,'canonical',canonical)
                 # need to add space to ArchiveWarning
-                if tag_category == 'ArchiveWarning':
+                if category == 'ArchiveWarning':
                     setattr(c_tag,'category','Archive Warning')
                 else:
-                    setattr(c_tag,'category',tag_category)
+                    setattr(c_tag,'category',category)
             # Tags don't hold count info as of 2024-08-20
             # I'd rather not include it there since you can't get that
             # data from the Tag page itself, and you get different results]
@@ -141,7 +141,7 @@ def tag_search(
     tag_name = "",
     fandoms="",
     page=1,
-    tag_category = "",
+    category = "",
     canonical = "",
     sort_column="name",
     sort_direction="asc",
@@ -152,7 +152,7 @@ def tag_search(
         any_field (str, optional): Generic search. Defaults to "".
         tag_name (str, optional) : Name of tag. Defaults to "".
         fandoms (str or list or strs, optional) : Name of parent fandom. Must be an exact match. Defaults to "".
-        tag_category (str, optional) : Type of tag. Options are Fandom, Character, Relationship, Freeform, ArchiveWarning, Category, Rating. If input type is not "" or one of the preceeding types, will raise exception.
+        category (str, optional) : Type of tag. Options are Fandom, Character, Relationship, Freeform, ArchiveWarning, Category, Rating. If input type is not "" or one of the preceeding types, will raise exception.
         canonical (bool, optional) :  If specified, if false, exclude canocial, if true, include only canonical.
         sort_column (str, optional): Which column to sort on. Defaults to 'name'. If not 'name', 'date_created', or 'uses' will raise exception.
         sort_direction (str, optional): Which direction to sort. Defaults to asc. If not 'desc' or 'asc' will raise exception.
@@ -179,11 +179,11 @@ def tag_search(
         else:
             raise ImproperSearchError("Fandoms must be a string or a list of strings")
         query.add_field(f"tag_search[fandoms]={fandom_search_string}")
-    if tag_category != "":
-        if tag_category not in ['Fandom', 'Character', 'Relationship', 'Freeform', 'ArchiveWarning', 'Category', 'Rating']:
+    if category != "":
+        if category not in ['Fandom', 'Character', 'Relationship', 'Freeform', 'ArchiveWarning', 'Category', 'Rating']:
             raise ImproperSearchError("Tag Category must be 'Fandom', 'Character', 'Relationship', 'Freeform', 'ArchiveWarning', 'Category', 'Rating', or ''.")
-        query.add_field(f"tag_search[type]={tag_category}")
-    if canonical is not None:
+        query.add_field(f"tag_search[type]={category}")
+    if canonical != "":
         query.add_field(f"tag_search[canonical]={'T' if canonical else 'F'}")
     if sort_column not in ['uses', 'created_at', 'name']:
         raise ImproperSearchError("Sort Column must be 'uses', 'created_at' or 'name.")
