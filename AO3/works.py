@@ -37,6 +37,8 @@ class Work:
         
         self.date_queried = None
         
+        self.MAX_WORKERS = None
+        
         if load:
             self.reload(load_chapters)
             
@@ -978,6 +980,9 @@ class Work:
         '''
         return list(map(lambda t:tags.Tag(t,load=False,session=self._session),[self.rating]+self.warnings+self.categories+self.fandoms+self.relationships+self.characters+self.tags))
     
+    def set_max_workers(self,workers):
+        self.MAX_WORKERS = workers
+    
     @cached_property
     def search_tags(self):
         '''
@@ -990,7 +995,7 @@ class Work:
         
         This method queries AO3 at least once for each tag in self.tags_unified.
         '''
-        return [tag.name for tag in utils.get_inherited_tags(self.tags_unified,parents=False,metatags=True,characters_from_relationships=False)]
+        return [tag.name for tag in utils.get_inherited_tags(self.tags_unified,parents=False,metatags=True,characters_from_relationships=False,max_workers=self.MAX_WORKERS)]
 
     def inherited_tags(self,metatags=True,parents=False,characters_from_relationships=False):
         '''

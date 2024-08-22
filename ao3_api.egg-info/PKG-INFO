@@ -16,6 +16,11 @@ Requires-Dist: lxml
 Requires-Dist: requests
 Requires-Dist: ratelimit
 Requires-Dist: backoff
+Requires-Dist: BeautifulSoup4
+Requires-Dist: lxml
+Requires-Dist: requests
+Requires-Dist: ratelimit
+Requires-Dist: backoff
 
 [![Documentation Status](https://readthedocs.org/projects/ao3-api/badge/?version=latest)](https://ao3-api.readthedocs.io/en/latest/?badge=latest)
 
@@ -79,7 +84,7 @@ print(' '.join(text.split(" ")[:20]))
 What Branches Grow Meaning
 December 27, 2018
  
-Christmas sucked this year, and Shoutoâ€™s got the black eye to prove it.
+Christmas sucked this year, and Shouto’s got the black eye to prove it.
 Things had started out well enough,
 ```
 
@@ -201,7 +206,7 @@ for result in search.results:
 3074
 <Work [five times lexa falls for clarke]>
 <Work [an incomplete list of reasons (why Clarke loves Lexa)]>
-<Work [five times clarke and lexa arenâ€™t sure if they're a couple or not]>
+<Work [five times clarke and lexa aren’t sure if they're a couple or not]>
 <Work [Chemistry]>
 <Work [The New Commander (Lexa Joining Camp Jaha)]>
 <Work [Ode to Clarke]>
@@ -212,7 +217,7 @@ for result in search.results:
 <Work [May We Meet Again]>
 <Work [No Filter]>
 <Work [The Games We Play]>
-<Work [A l'Ã©preuve des balles]>
+<Work [A l'épreuve des balles]>
 <Work [Celebration]>
 <Work [Another level of fucked up]>
 <Work [(Don't Ever Want to Tame) This Wild Heart]>

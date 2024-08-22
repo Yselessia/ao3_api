@@ -50,6 +50,11 @@ class Requester:
         self.waiting = False
         self.wait_condition = threading.Condition()
         
+        self._explambda = 0
+    
+    def setExpLambda(self, value):
+        self._explambda = value    
+    
     def setRQTW(self, value):
         self._rqtw = value
         
