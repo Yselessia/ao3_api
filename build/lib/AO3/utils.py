@@ -3,6 +3,7 @@ import pickle
 import re
 import warnings
 import queue
+from urllib.parse import unquote
 
 from bs4 import BeautifulSoup
 
@@ -632,6 +633,16 @@ def tagname_from_urlext(url):
     # '?' with *q*
     
     return url.replace('*s*',r'/').replace('*a*',r'&').replace('*d*',r'.').replace('*q*',r'?').replace('*h*',r'#')
+
+def tagname_from_href(url):
+    # Do the following character substititions
+    # '/' with '*s*'
+    # '&' with '*a*'
+    # '.' with *d*
+    # '?' with *q*
+    
+    return unquote(tagname_from_urlext(re.findall(r"/tags/([^/]+)(?:/works)?",url)[0]))
+
 
 def get_inherited_tags(tag_list,parents=True,metatags=True,characters_from_relationships=False,max_workers=None,load_all=False):
     '''

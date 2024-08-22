@@ -16,13 +16,13 @@ def get_work_from_banner(work):
     
     authors = []
     try:
-        for a in work.h4.find_all("a"):
-            if 'rel' in a.attrs.keys():
-                if "author" in a['rel']:
-                    authors.append(User(str(a.string), load=False)) # cast as string for pickling
-            elif a.attrs["href"].startswith("/works"):
-                workname = str(a.string)
-                workid = utils.workid_from_url(a['href'])
+        for l in work.h4.find_all("a"):
+            if 'rel' in l.attrs.keys():
+                if "author" in l['rel']:
+                    authors.append(User(str(l.string), load=False)) # cast as string for pickling
+            elif l.attrs["href"].startswith("/works"):
+                workname = str(l.string)
+                workid = utils.workid_from_url(l['href'])
     except AttributeError:
         pass
             
@@ -30,8 +30,8 @@ def get_work_from_banner(work):
 
     fandoms = []
     try:
-        for a in work.find("h5", {"class": "fandoms"}).find_all("a"):
-            fandoms.append(str(a.string))
+        for l in work.find("h5", {"class": "fandoms"}).find_all("a"):
+            fandoms.append(str(l.string))
     except AttributeError:
         pass
 
@@ -40,15 +40,15 @@ def get_work_from_banner(work):
     characters = []
     freeforms = []
     try:
-        for a in work.find(attrs={"class": "tags"}).find_all("li"):
-            if "warnings" in a['class']:
-                warnings.append(a.text)
-            elif "relationships" in a['class']:
-                relationships.append(a.text)
-            elif "characters" in a['class']:
-                characters.append(a.text)
-            elif "freeforms" in a['class']:
-                freeforms.append(a.text)
+        for l in work.find(attrs={"class": "tags"}).find_all("li"):
+            if "warnings" in l['class']:
+                warnings.append(utils.tagname_from_href(l.a['href']))
+            elif "relationships" in l['class']:
+                relationships.append(utils.tagname_from_href(l.a['href']))
+            elif "characters" in l['class']:
+                characters.append(utils.tagname_from_href(l.a['href']))
+            elif "freeforms" in l['class']:
+                freeforms.append(utils.tagname_from_href(l.a['href']))
     except AttributeError:
         pass
 
@@ -70,9 +70,9 @@ def get_work_from_banner(work):
     series = []
     series_list = work.find(attrs={"class": "series"})
     if series_list is not None:
-        for a in series_list.find_all("a"):
-            seriesid = int(a.attrs['href'].split("/")[-1])
-            seriesname = a.text
+        for l in series_list.find_all("a"):
+            seriesid = int(l.attrs['href'].split("/")[-1])
+            seriesname = l.text
             s = Series(seriesid, load=False)
             setattr(s, "name", seriesname)
             series.append(s)
@@ -151,7 +151,7 @@ def get_work_from_banner(work):
     __setifnotnone(new, "restricted", restricted)
     __setifnotnone(new, "series", series)
     __setifnotnone(new, "summary", summary)
-    __setifnotnone(new, "tags", freeforms)
+    __setifnotnone(new, "freeforms", freeforms)
     __setifnotnone(new, "title", workname)
     __setifnotnone(new, "warnings", warnings)
     __setifnotnone(new, "words", words)

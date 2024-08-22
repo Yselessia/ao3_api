@@ -10,7 +10,7 @@ from .users import User
 from .works import Work
 from .tags import Tag
 
-from .utils import ImproperSearchError
+from .utils import ImproperSearchError, tagname_from_href
 
 import re
 from datetime import datetime
@@ -55,7 +55,7 @@ class TagSearch:
         self.any_field=any_field
         self.tag_name = tag_name
         self.fandoms=fandoms
-        if category not in ['Fandom', 'Character', 'Relationship', 'Freeform', 'ArchiveWarning', 'Category', 'Rating']:
+        if category not in ['Fandom', 'Character', 'Relationship', 'Freeform', 'ArchiveWarning', 'Category', 'Rating','']:
             raise ImproperSearchError("Tag Category must be 'Fandom', 'Character', 'Relationship', 'Freeform', 'ArchiveWarning', 'Category', 'Rating', or ''.")
         self.tag_category = category
         self.canonical = canonical
@@ -104,9 +104,11 @@ class TagSearch:
         tags = []
         for tag in results.find_all("li"):
                
-            canonical = tag.find("span")['class'][0] == 'canonical'
-            tag_category, tag_name, n_works = re.findall(r"([A-Za-z]+): (.+) \u200e\((\d+)\)",tag.find("span").getText())[0]
+            canonical =  tag.find("span",{'class':'canonical'}) is not None
+            tag_category, _, n_works = re.findall(r"([A-Za-z]+): (.+) \u200e\((\d+)\)",tag.find("span").getText())[0]
             n_works = int(n_works)
+            
+            tag_name = tagname_from_href(tag.find("span").a['href'])
             
             # Add tag to cache, but dont load?
             # Not sure if this is necessary or a good idea

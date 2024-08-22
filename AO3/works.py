@@ -10,6 +10,8 @@ from .comments import Comment
 from .requester import requester
 from .users import User
 
+from .utils import tagname_from_href
+
 MAX_WORKERS = None
 
 class Work:
@@ -752,7 +754,7 @@ class Work:
         return self.date_published
     
     @cached_property
-    def tags(self):
+    def freeforms(self):
         """Returns all the work's tags
 
         Returns:
@@ -763,7 +765,7 @@ class Work:
         tags = []
         if html is not None:
             for tag in html.find_all("li"):
-                tags.append(str(tag.a.string))
+                tags.append(str(tagname_from_href(tag.a['href'])))
         return tags
 
     @cached_property
@@ -778,7 +780,7 @@ class Work:
         characters = []
         if html is not None:
             for character in html.find_all("li"):
-                characters.append(str(character.a.string))
+                characters.append(str(tagname_from_href(character.a['href'])))
         return characters
 
     @cached_property
@@ -793,7 +795,7 @@ class Work:
         relationships = []
         if html is not None:
             for relationship in html.find_all("li"):
-                relationships.append(str(relationship.a.string))
+                relationships.append(str(tagname_from_href(relationship.a['href'])))
         return relationships
 
     @cached_property
@@ -808,7 +810,7 @@ class Work:
         fandoms = []
         if html is not None:
             for fandom in html.find_all("li"):
-                fandoms.append(str(fandom.a.string))
+                fandoms.append(str(tagname_from_href(fandom.a['href'])))
         return fandoms
 
     @cached_property
@@ -823,7 +825,7 @@ class Work:
         categories = []
         if html is not None:
             for category in html.find_all("li"):
-                categories.append(str(category.a.string))
+                categories.append(str(tagname_from_href(category.a['href'])))
         return categories
 
     @cached_property
@@ -838,7 +840,7 @@ class Work:
         warnings = []
         if html is not None:
             for warning in html.find_all("li"):
-                warnings.append(str(warning.a.string))
+                warnings.append(str(tagname_from_href(warning.a['href'])))
         return warnings
 
     @cached_property
@@ -851,7 +853,7 @@ class Work:
 
         html = self._soup.find("dd", {"class": "rating tags"})
         if html is not None:
-            rating = str(html.a.string)
+            rating = str(tagname_from_href(html.a['href']))
             return rating
         return None
 
@@ -978,7 +980,8 @@ class Work:
         '''
         Returns all tags of a work in a single list as Tag objects
         '''
-        return list(map(lambda t:tags.Tag(t,load=False,session=self._session),[self.rating]+self.warnings+self.categories+self.fandoms+self.relationships+self.characters+self.tags))
+        return list(map(lambda t:tags.Tag(t,load=False,session=self._session),[self.rating]+self.warnings+self.categories+self.fandoms+self.relationships+self.characters+self.freeforms))
+
     
     def set_max_workers(self,workers):
         self.MAX_WORKERS = workers
