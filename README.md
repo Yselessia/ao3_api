@@ -430,6 +430,8 @@ search = AO3.TagSearch(
     category='Character',
     sort_column='uses',
     sort_direction='desc')
+
+search = TagSearch(canonical=True,fandoms='Rosencrantz & Guildenstern are Dead - Stoppard',category='Character',sort_column='uses',sort_direction='desc')
 search.update()
 print(search.total_results)
 for result in search.results:

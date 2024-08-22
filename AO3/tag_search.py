@@ -10,10 +10,11 @@ from .users import User
 from .works import Work
 from .tags import Tag
 
-from utils import ImproperSearchError
+from .utils import ImproperSearchError
 
 import re
 from datetime import datetime
+from urllib.parse import quote_plus
 
 DEFAULT = "_score"
 BEST_MATCH = "_score"
@@ -31,6 +32,9 @@ KUDOS = "kudos_count"
 DESCENDING = "desc"
 ASCENDING = "asc"
 
+#https://stackoverflow.com/questions/18495098/python-check-if-an-object-is-a-list-of-strings
+def is_list_of_strings(lst):
+        return bool(lst) and not isinstance(lst, str) and all(isinstance(elem, str) for elem in lst)
 
 
 class TagSearch:
@@ -100,14 +104,14 @@ class TagSearch:
         tags = []
         for tag in results.find_all("li"):
                
-            canonical = tag.find("span")['class']
+            canonical = tag.find("span")['class'][0] == 'canonical'
             tag_category, tag_name, n_works = re.findall(r"([A-Za-z]+): (.+) \u200e\((\d+)\)",tag.find("span").getText())[0]
             n_works = int(n_works)
             
             # Add tag to cache, but dont load?
             # Not sure if this is necessary or a good idea
             # Doing it since we do it for works
-            c_tag = Tag(name=tag_name,load=False,session=self.session)
+            c_tag = Tag(tag_name,load=False,session=self.session)
             if not c_tag.loaded and not c_tag.query_error:
                 # Set what we do know, but don't update loaded status
                 setattr(c_tag,'canonical',canonical)
@@ -145,7 +149,7 @@ def tag_search(
     Args:
         any_field (str, optional): Generic search. Defaults to "".
         tag_name (str, optional) : Name of tag. Defaults to "".
-        fandoms (str, optional) : Name of parent fandom. Must be an exact match. Defaults to "".
+        fandoms (str or list or strs, optional) : Name of parent fandom. Must be an exact match. Defaults to "".
         tag_category (str, optional) : Type of tag. Options are Fandom, Character, Relationship, Freeform, ArchiveWarning, Category, Rating. If input type is not "" or one of the preceeding types, will raise exception.
         canonical (bool, optional) :  If specified, if false, exclude canocial, if true, include only canonical.
         sort_column (str, optional): Which column to sort on. Defaults to 'name'. If not 'name', 'date_created', or 'uses' will raise exception.
@@ -158,23 +162,31 @@ def tag_search(
     """
 
     query = utils.Query()
-    query.add_field(f"work_search[query]={any_field if any_field != '' else ' '}")
+    query.add_field(f"tag_search[query]={any_field if any_field != '' else ' '}")
     if page != 1:
         query.add_field(f"page={page}")
     if tag_name != "":
-        query.add_field(f"work_search[title]={tag_name}")
+        tag_search_str = quote_plus(tag_name)
+        query.add_field(f"tag_search[name]={tag_search_str}")
     if fandoms != "":
-        query.add_field(f"work_search[fandoms]={fandoms}")
+        # Check if it's a list of strings
+        if is_list_of_strings(fandoms):
+            fandom_search_string = ",".join(quote_plus(f) for f in fandoms)
+        elif fandoms != "" and isinstance(fandoms, str):
+            fandom_search_string = quote_plus(fandoms)
+        else:
+            raise ImproperSearchError("Fandoms must be a string or a list of strings")
+        query.add_field(f"tag_search[fandoms]={fandom_search_string}")
     if tag_category != "":
         if tag_category not in ['Fandom', 'Character', 'Relationship', 'Freeform', 'ArchiveWarning', 'Category', 'Rating']:
             raise ImproperSearchError("Tag Category must be 'Fandom', 'Character', 'Relationship', 'Freeform', 'ArchiveWarning', 'Category', 'Rating', or ''.")
-        query.add_field(f"work_search[type]={tag_category}")
+        query.add_field(f"tag_search[type]={tag_category}")
     if canonical is not None:
         query.add_field(f"tag_search[canonical]={'T' if canonical else 'F'}")
     if sort_column not in ['uses', 'created_at', 'name']:
         raise ImproperSearchError("Sort Column must be 'uses', 'created_at' or 'name.")
     if sort_column != "":
-        query.add_field(f"work_search[sort_column]={sort_column}")
+        query.add_field(f"tag_search[sort_column]={sort_column}")
     if sort_direction not in ['desc', 'asc']:
         raise ImproperSearchError("Sort Direction must be 'desc' or 'asc'.")
     if sort_direction != "":
@@ -182,10 +194,10 @@ def tag_search(
         # uses
         # created_at
         # name
-        query.add_field(f"work_search[sort_direction]={sort_direction}")
+        query.add_field(f"tag_search[sort_direction]={sort_direction}")
 
     url = f"https://archiveofourown.org/tags/search?commit=Search+Tags&{query.string}"
-
+    print(url)
     if session is None:
         req = requester.request("get", url)
     else:
