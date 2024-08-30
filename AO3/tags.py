@@ -327,7 +327,7 @@ class Tag:
         else:
             # On tag pages, tags are still listed as common not canonical.
             # The method matches the terminology found elsewhere
-            return len(re.findall(r"It\'s a common tag",self._soup.find("div",{'class':'tag home profile'}).find('p').text)) == 1
+            return len(re.findall(r"It\'s a (?:common|canonical) tag",self._soup.find("div",{'class':'tag home profile'}).find('p').text)) == 1
     
     @cached_property
     def metatag_names(self):
