@@ -113,9 +113,67 @@ class Search:
 
         self.results = works
         maindiv = soup.find("div", {"class": "works-search region", "id": "main"})
-        self.total_results = int(maindiv.find("h3", {"class": "heading"}).getText().replace(',','').replace('.','').strip().split(" ")[0])
+        self.total_results = int(maindiv.find("h3", {"class": "heading"}).getText().strip().split(" ")[0].replace(',',''))      
         self.pages = ceil(self.total_results / 20)
 
+    def search_from_url(self, user_url):
+        if user_url[-5:] == "works" or 'works?commit=Sort+and+Filter&page=' in user_url or 'works?page=' in user_url or user_url[:56] == "https://archiveofourown.org/works?commit=Sort+and+Filter":
+            req_resp = requester.request("get", user_url)
+            if req_resp.status_code == 429:
+                raise utils.HTTPError("We are being rate-limited. Try again in a while or reduce the number of requests")
+            url_soup = BeautifulSoup(req_resp.content, features="lxml")
+            results = url_soup.find("ol", {"class": ("work", "index", "group")})
+            if results is None and url_soup.find("p", text="0 Works in") is not None:
+                self.results = []
+                self.total_results = 0
+                self.pages = 0
+                return  
+            works = []
+            global glob_url
+            glob_url = user_url
+            for work in results.find_all("li", {"role": "article"}):
+                if work.h4 is None:
+                    continue
+                    
+                new = get_work_from_banner(work)
+                new._session = self.session
+                works.append(new)
+
+            self.results = works
+            maindiv = url_soup.find("div", {"class": "works-index filtered region", "id": "main"})
+            #if type(maindiv) == None:
+            #    maindiv = url_soup.find("div", {"class": "works-index filtered region", "id": "main"})
+            #print(maindiv.find("h2", {"class": "heading"}).getText().split("of")[1].split("in")[0].split()[0].replace(',',''))
+            self.total_results = int(maindiv.find("h2", {"class": "heading"}).getText().split("of")[1].split("in")[0].split()[0].replace(',',''))
+            #self.total_results = int(maindiv.find("h2", {"class": "heading"}).getText().strip().split(" ")[0].replace(',',''))
+            self.pages = ceil(self.total_results / 20)      
+        else:
+            #Maybe add error thingy?
+            self.results = []
+            self.total_results = -1
+            self.pages = 0
+            return  
+        
+    def url_update(self, page):
+        if glob_url[-5:] == "works":
+            new_url = glob_url + "?page=" + str(page)
+            print("printing url")
+            print(new_url)
+            self.search_from_url(new_url)
+            return
+        elif glob_url[:56] == "https://archiveofourown.org/works?commit=Sort+and+Filter":
+            new_url = glob_url[:56] + "&page="+ str(page) + glob_url[56:]
+            print("printing url")
+            print(new_url)
+            self.search_from_url(new_url)
+        elif "&page=" in glob_url:
+            new_url = glob_url.split("page=", 1)[0] + "page=" + str(page) + "&" + glob_url.split("page=", 1)[1].split("&", 1)[1]
+            #new_url = glob_url[:56] + "&page=" + str(page) + "&"+ glob_url[:68].split("&", 1)[1]
+        elif "?page=" in glob_url:
+            splits = glob_url.split("page")
+            new_url = splits[0] + "page=" + str(page) + splits[1]
+
+            
 def search(
     any_field="",
     title="",
