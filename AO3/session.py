@@ -466,7 +466,7 @@ class Session(GuestSession):
           self._bookmarks = []
           #self._soupDump = []
           for page in range(start_page, self._bookmark_pages):
-              print(str(page))
+                print(str(page))
           # If we are attempting to recover from errors then
                 # catch and loop, otherwise just call and go
                 if timeout_sleep is None:
