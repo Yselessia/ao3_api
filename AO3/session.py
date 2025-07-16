@@ -466,6 +466,7 @@ class Session(GuestSession):
           self._bookmarks = []
           #self._soupDump = []
           for page in range(start_page, self._bookmark_pages):
+              print(str(page)
           # If we are attempting to recover from errors then
                 # catch and loop, otherwise just call and go
                 if timeout_sleep is None:
@@ -491,7 +492,9 @@ class Session(GuestSession):
                 # Again attempt to avoid rate limiter, sleep for a few
                 # seconds between page requests.
                 if hist_sleep is not None and hist_sleep > 0:
+                    print("sleep for " + str(hist_sleep) +' seconds.'
                     time.sleep(hist_sleep)
+                    
 
         return self._bookmarks
     
@@ -513,7 +516,7 @@ class Session(GuestSession):
     def _load_bookmarks(self, page=1):       
         url = self._bookmarks_url.format(self.username, page)
         soup = self.request(url)
-
+        print(soup)
         
         bookmarks = soup.find("ol", {"class": "bookmark index group"})
 
