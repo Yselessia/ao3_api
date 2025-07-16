@@ -452,6 +452,9 @@ class Session(GuestSession):
 
     def get_bookmarks(self, hist_sleep=3, start_page=0, max_pages=None, timeout_sleep=60):
         """
+        Kopie von get_history: jetzt auch mit sleep etc. 
+
+        
         Get bookmarked works. Loads them if they haven't been previously
 
         Returns:
@@ -506,11 +509,15 @@ class Session(GuestSession):
         for thread in threads:
             thread.join()
     
-    @threadable.threadable
+    #@threadable.threadable
     def _load_bookmarks(self, page=1):       
         url = self._bookmarks_url.format(self.username, page)
         soup = self.request(url)
+
+        
         bookmarks = soup.find("ol", {"class": "bookmark index group"})
+
+        
         for bookm in bookmarks.find_all("li", {"class": ["bookmark", "index", "group"]}):
             authors = []
             recommended = False
