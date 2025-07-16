@@ -204,7 +204,7 @@ class Session(GuestSession):
         self._bookmarks = None
         self._subscriptions = None
         
-    @cached_property
+    #@cached_property
     def _subscription_pages(self):
         url = self._subscriptions_url.format(self.username, 1)
         soup = self.request(url)
@@ -321,7 +321,7 @@ class Session(GuestSession):
                 setattr(new, "authors", authors)
                 self._subscriptions.append(new)
 
-    @cached_property
+    #@cached_property
     def _history_pages(self):
         url = self._history_url.format(self.username, 1)
         soup = self.request(url)
@@ -419,7 +419,7 @@ class Session(GuestSession):
                 if new not in self._history:
                     self._history.append(hist_item)
                 
-    @cached_property
+    #@cached_property
     def _bookmark_pages(self):
         url = self._bookmarks_url.format(self.username, 1)
         soup = self.request(url)
@@ -477,7 +477,7 @@ class Session(GuestSession):
                     while loaded == False:
                         try:
                             self._load_bookmarks(page=page+1)
-                            # print(f"Read history page {page+1}")
+                            print(f"Read history page {page+1}")
                             loaded = True
 
                         except utils.HTTPError:
@@ -492,7 +492,7 @@ class Session(GuestSession):
                 # Again attempt to avoid rate limiter, sleep for a few
                 # seconds between page requests.
                 if hist_sleep is not None and hist_sleep > 0:
-                    print(f"Loading being rate limited, sleeping for {hist_sleep} seconds")
+                    print(f"Sleeping for {hist_sleep} seconds")
                     time.sleep(hist_sleep)
                     
 
@@ -516,7 +516,7 @@ class Session(GuestSession):
     def _load_bookmarks(self, page=1):       
         url = self._bookmarks_url.format(self.username, page)
         soup = self.request(url)
-        print(soup)
+        #print(soup)
         
         bookmarks = soup.find("ol", {"class": "bookmark index group"})
 
@@ -549,7 +549,7 @@ class Session(GuestSession):
                     if new not in self._bookmarks:
                         self._bookmarks.append(new)
             
-    @cached_property
+    #@cached_property
     def bookmarks(self):
         """Get the number of your bookmarks.
         Must be logged in to use.
