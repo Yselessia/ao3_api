@@ -433,21 +433,63 @@ class Session(GuestSession):
                 n = int(text)
         return n
     
-    def get_bookmarks(self, use_threading=False):
+    # def get_bookmarks(self, use_threading=False):
+    #     """
+    #     Get bookmarked works. Loads them if they haven't been previously
+
+    #     Returns:
+    #         list: List of tuples (workid, workname, authors)
+    #     """
+        
+    #     if self._bookmarks is None:
+    #         if use_threading:
+    #             self.load_bookmarks_threaded()
+    #         else:
+    #             self._bookmarks = []
+    #             for page in range(self._bookmark_pages):
+    #                 self._load_bookmarks(page=page+1)
+    #     return self._bookmarks
+
+    def get_bookmarks(self, hist_sleep=3, start_page=0, max_pages=None, timeout_sleep=60):
         """
         Get bookmarked works. Loads them if they haven't been previously
 
         Returns:
             list: List of tuples (workid, workname, authors)
         """
-        
+
         if self._bookmarks is None:
-            if use_threading:
-                self.load_bookmarks_threaded()
-            else:
-                self._bookmarks = []
-                for page in range(self._bookmark_pages):
-                    self._load_bookmarks(page=page+1)
+
+          self._bookmarks = []
+          #self._soupDump = []
+          for page in range(start_page, self._bookmark_pages):
+          # If we are attempting to recover from errors then
+                # catch and loop, otherwise just call and go
+                if timeout_sleep is None:
+                  self._load_bookmarks(page=page+1)
+
+                else:
+                    loaded=False
+                    while loaded == False:
+                        try:
+                            self._load_bookmarks(page=page+1)
+                            # print(f"Read history page {page+1}")
+                            loaded = True
+
+                        except utils.HTTPError:
+                            print(f"History being rate limited, sleeping for {timeout_sleep} seconds")
+                            time.sleep(timeout_sleep)
+
+
+                  # Check for maximum history page load
+                if max_pages is not None and page >= max_pages:
+                    return self._bookmarks
+
+                # Again attempt to avoid rate limiter, sleep for a few
+                # seconds between page requests.
+                if hist_sleep is not None and hist_sleep > 0:
+                    time.sleep(hist_sleep)
+
         return self._bookmarks
     
     @threadable.threadable
