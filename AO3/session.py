@@ -627,9 +627,22 @@ class Session(GuestSession):
     #     return works
 
     def _marked_for_later_pages(self):
-        pageRaw = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page=1&show=to-read").find("ol", {"aria-label": "Pagination"}).find_all("li")
-        maxPage = int(pageRaw[len(pageRaw)-2].text)
-        return maxPage
+        # pageRaw = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page=1&show=to-read").find("ol", {"aria-label": "Pagination"}).find_all("li")
+        # maxPage = int(pageRaw[len(pageRaw)-2].text)
+        # return maxPage
+
+        soup = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page=1&show=to-read")
+        pages = soup.find("ol",{"aria-label": "Pagination"})
+        if pages is None:
+            return 1
+        n = 1
+        for li in pages.findAll("li"):
+            text = li.getText()
+            if text.isdigit():
+                n = int(text)
+        return n
+
+    
         
     def get_marked_for_later(self, hist_sleep=3, start_page=0, max_pages=None, timeout_sleep=60):
         """
