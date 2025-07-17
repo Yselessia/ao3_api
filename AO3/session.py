@@ -815,14 +815,14 @@ class Session(GuestSession):
                     seriesname = str(a.string)
                     seriesid = utils.seriesid_from_url(a["href"])
                     
-            if workname != None and workid != None:
+            if seriesname != None and seriesid != None:
                 #new = Work(workid, load=False)
                 #setattr(new, "title", workname)
                 # setattr(new, "authors", authors)
                 # hist_item = [ new, visited_num, visited_date ]
                 # print(hist_item)
                 #if new not in self._history:
-                self._marked_for_later[seriesid]= seriesname
+                self._bookmarked_series[seriesid]= seriesname
 
 
 
