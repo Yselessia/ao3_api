@@ -735,8 +735,7 @@ class Session(GuestSession):
         soup = self.request(url)
         pages = soup.find("ol",{"aria-label": "Pagination"})
         if pages is None:
-        
-        pages = soup.find("ol",{"aria-label": "Pagination"})
+            pages = soup.find("ol",{"aria-label": "Pagination"})
         if pages is None:
             return 1
         n = 1
@@ -746,7 +745,6 @@ class Session(GuestSession):
                 n = int(text)
         return n
 
-    
         
     def get_bookmarked_series(self, hist_sleep=3, start_page=0, max_pages=None, timeout_sleep=60):
         """
