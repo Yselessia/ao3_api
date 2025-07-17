@@ -732,7 +732,10 @@ class Session(GuestSession):
         # return maxPage
         url = f"https://archiveofourown.org/bookmarks?bookmark_search%5Bbookmarkable_query%5D=bookmarkable_type%3A+Series&commit=Sort+and+Filter&user_id={self.username}&page=1"
         #soup = self.request(f"https://archiveofourown.org/bookmarks?bookmark_search[sort_column]=created_at&bookmark_search[other_tag_names]=&bookmark_search[other_bookmark_tag_names]=&bookmark_search[excluded_tag_names]=&bookmark_search[excluded_bookmark_tag_names]=&bookmark_search[bookmarkable_query]=bookmarkable_type%3A+Series&bookmark_search[bookmark_query]=&bookmark_search[language_id]=&bookmark_search[rec]=0&bookmark_search[with_notes]=0&commit=Sort+and+Filter&user_id={self.username}&page=1")
-        self.request(url)
+        soup = self.request(url)
+        pages = soup.find("ol",{"aria-label": "Pagination"})
+        if pages is None:
+        
         pages = soup.find("ol",{"aria-label": "Pagination"})
         if pages is None:
             return 1
