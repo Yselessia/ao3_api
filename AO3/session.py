@@ -178,6 +178,7 @@ class Session(GuestSession):
         self._bookmarks = None
         self._subscriptions = None
         self._history = None
+        self._marked_for_later = None
         
     def __getstate__(self):
         d = {}
