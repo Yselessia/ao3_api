@@ -209,7 +209,7 @@ class Session(GuestSession):
     def _subscription_pages(self):
         url = self._subscriptions_url.format(self.username, 1)
         soup = self.request(url)
-        pages = soup.find("ol", {"title": "pagination"})
+        pages = soup.find("ol", {"aria-label": "Pagination"})
         if pages is None:
             return 1
         n = 1
@@ -326,7 +326,7 @@ class Session(GuestSession):
     def _history_pages(self):
         url = self._history_url.format(self.username, 1)
         soup = self.request(url)
-        pages = soup.find("ol", {"title": "pagination"})
+        pages = soup.find("ol", {"aria-label": "Pagination"})
         if pages is None:
             return 1
         n = 1
@@ -424,7 +424,7 @@ class Session(GuestSession):
     def _bookmark_pages(self):
         url = self._bookmarks_url.format(self.username, 1)
         soup = self.request(url)
-        pages = soup.find("ol", {"title": "pagination"})
+        pages = soup.find("ol",{"aria-label": "Pagination"})
         if pages is None:
             return 1
         n = 1
@@ -627,7 +627,7 @@ class Session(GuestSession):
     #     return works
 
     def _marked_for_later_pages(self):
-        pageRaw = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page=1&show=to-read").find("ol", {"class": "pagination actions"}).find_all("li")
+        pageRaw = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page=1&show=to-read").find("ol", {"aria-label": "Pagination"}).find_all("li")
         maxPage = int(pageRaw[len(pageRaw)-2].text)
         return maxPage
         
