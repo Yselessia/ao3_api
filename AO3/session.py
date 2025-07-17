@@ -757,9 +757,9 @@ class Session(GuestSession):
             works (dict): all bookmarked Series
         """
 
-        if self._bookmarked_series is None:
+        if self._series_bookmarks is None:
 
-          self._bookmarked_series = {}
+          self._series_bookmarks = {}
           self._bookmarked_series_pages = self._get_bookmarked_series_pages()
 
           for page in range(start_page, self._bookmarked_series_pages):
@@ -785,7 +785,7 @@ class Session(GuestSession):
 
                   # Check for maximum history page load
                 if max_pages is not None and page >= max_pages:
-                    return self._bookmarked_series
+                    return self._series_bookmarks
 
                 # Again attempt to avoid rate limiter, sleep for a few
                 # seconds between page requests.
@@ -794,7 +794,7 @@ class Session(GuestSession):
                     time.sleep(hist_sleep)
                     
 
-        return self._bookmarked_series
+        return self._series_bookmarks
 
     def _load_bookmarked_series(self, page=1):   
 
@@ -822,7 +822,7 @@ class Session(GuestSession):
                 # hist_item = [ new, visited_num, visited_date ]
                 # print(hist_item)
                 #if new not in self._history:
-                self._bookmarked_series[seriesid]= seriesname
+                self._series_bookmarks[seriesid]= seriesname
 
 
 
