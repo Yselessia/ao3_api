@@ -179,6 +179,7 @@ class Session(GuestSession):
         self._subscriptions = None
         self._history = None
         self._marked_for_later = None
+        self._series_bookmarks = None 
         
     def __getstate__(self):
         d = {}
@@ -723,6 +724,106 @@ class Session(GuestSession):
                 # print(hist_item)
                 #if new not in self._history:
                 self._marked_for_later[workid]= workname
+
+
+    def _get_bookmarked_series_pages(self):
+        # pageRaw = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page=1&show=to-read").find("ol", {"aria-label": "Pagination"}).find_all("li")
+        # maxPage = int(pageRaw[len(pageRaw)-2].text)
+        # return maxPage
+        url = f"https://archiveofourown.org/bookmarks?bookmark_search%5Bbookmarkable_query%5D=bookmarkable_type%3A+Series&commit=Sort+and+Filter&user_id={self.username}&page={page}"
+        #soup = self.request(f"https://archiveofourown.org/bookmarks?bookmark_search[sort_column]=created_at&bookmark_search[other_tag_names]=&bookmark_search[other_bookmark_tag_names]=&bookmark_search[excluded_tag_names]=&bookmark_search[excluded_bookmark_tag_names]=&bookmark_search[bookmarkable_query]=bookmarkable_type%3A+Series&bookmark_search[bookmark_query]=&bookmark_search[language_id]=&bookmark_search[rec]=0&bookmark_search[with_notes]=0&commit=Sort+and+Filter&user_id={self.username}&page=1")
+        self.request(url)
+        pages = soup.find("ol",{"aria-label": "Pagination"})
+        if pages is None:
+            return 1
+        n = 1
+        for li in pages.findAll("li"):
+            text = li.getText()
+            if text.isdigit():
+                n = int(text)
+        return n
+
+    
+        
+    def get_bookmarked_series(self, hist_sleep=3, start_page=0, max_pages=None, timeout_sleep=60):
+        """
+        Gets all bookmarked series 
+
+        Arguments:
+            sleep (int): The time to wait between page requests
+            timeout_sleep (int): The time to wait after the rate limit is hit
+
+        Returns:
+            works (dict): all bookmarked Series
+        """
+
+        if self._bookmarked_series is None:
+
+          self._bookmarked_series = {}
+          self._bookmarked_series_pages = self._get_bookmarked_series_pages()
+
+          for page in range(start_page, self._bookmarked_series_pages):
+                print(f"Processing page {page+1} of {self._bookmarked_series_pages} pages.")
+                #print(str(page))
+                # If we are attempting to recover from errors then
+                # catch and loop, otherwise just call and go
+                if timeout_sleep is None:
+                  self._load_bookmarked_series(page=page+1)
+
+                else:
+                    loaded=False
+                    while loaded == False:
+                        try:
+                            self._load_bookmarked_series(page=page+1)
+                            print(f"Read page {page+1}")
+                            loaded = True
+
+                        except utils.HTTPError:
+                            print(f"Loading being rate limited, sleeping for {timeout_sleep} seconds")
+                            time.sleep(timeout_sleep)
+
+
+                  # Check for maximum history page load
+                if max_pages is not None and page >= max_pages:
+                    return self._bookmarked_series
+
+                # Again attempt to avoid rate limiter, sleep for a few
+                # seconds between page requests.
+                if hist_sleep is not None and hist_sleep > 0:
+                    print(f"Sleeping for {hist_sleep} seconds")
+                    time.sleep(hist_sleep)
+                    
+
+        return self._bookmarked_series
+
+    def _load_bookmarked_series(self, page=1):   
+
+        
+        #url = f"https://archiveofourown.org/bookmarks?bookmark_search[sort_column]=created_at&bookmark_search[other_tag_names]=&bookmark_search[other_bookmark_tag_names]=&bookmark_search[excluded_tag_names]=&bookmark_search[excluded_bookmark_tag_names]=&bookmark_search[bookmarkable_query]=bookmarkable_type%3A+Series&bookmark_search[bookmark_query]=&bookmark_search[language_id]=&bookmark_search[rec]=0&bookmark_search[with_notes]=0&commit=Sort+and+Filter&user_id={self.username}&page={page}"
+        
+        url = f"https://archiveofourown.org/bookmarks?bookmark_search%5Bbookmarkable_query%5D=bookmarkable_type%3A+Series&commit=Sort+and+Filter&user_id={self.username}&page={page}"
+        workPage = self.request(url)
+        worksRaw = workPage.find_all("li", {"role": "article"})
+        #read_later = worksRaw.find("ol", {"class": "reading work index group"})
+
+        for item in worksRaw:
+            # authors = []
+            seriesname = None
+            seriesid = None
+            for a in item.h4.find_all("a"):
+                if a.attrs["href"].startswith("/series"):
+                    workname = str(a.string)
+                    workid = utils.workid_from_url(a["href"])
+                    
+            if workname != None and workid != None:
+                #new = Work(workid, load=False)
+                #setattr(new, "title", workname)
+                # setattr(new, "authors", authors)
+                # hist_item = [ new, visited_num, visited_date ]
+                # print(hist_item)
+                #if new not in self._history:
+                self._marked_for_later[workid]= workname
+
 
 
 
