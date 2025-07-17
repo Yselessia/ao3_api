@@ -323,7 +323,7 @@ class Session(GuestSession):
                 self._subscriptions.append(new)
 
     #@cached_property
-    def _history_pages(self):
+    def _get_history_pages(self):
         url = self._history_url.format(self.username, 1)
         soup = self.request(url)
         pages = soup.find("ol", {"aria-label": "Pagination"})
@@ -354,6 +354,7 @@ class Session(GuestSession):
         
         if self._history is None:
             self._history = []
+            self._history_pages= self._get_history_pages()
             for page in range(start_page, self._history_pages):
                 print(f"Processing page {page+1} of {self._history_pages} pages.")
                 # If we are attempting to recover from errors then
@@ -422,7 +423,7 @@ class Session(GuestSession):
                     self._history.append(hist_item)
                 
     #@cached_property
-    def _bookmark_pages(self):
+    def _get_bookmark_pages(self):
         url = self._bookmarks_url.format(self.username, 1)
         soup = self.request(url)
         pages = soup.find("ol",{"aria-label": "Pagination"})
@@ -466,6 +467,7 @@ class Session(GuestSession):
         if self._bookmarks is None:
 
           self._bookmarks = []
+          self._bookmark_pages= self._get_bookmark_pages()
           #self._soupDump = []
           for page in range(start_page, self._bookmark_pages):
                 print(f"Processing page {page+1} of {self._bookmark_pages} pages.")
@@ -510,6 +512,7 @@ class Session(GuestSession):
         
         threads = []
         self._bookmarks = []
+        self._bookmark_pages= self._get_bookmark_pages()
         for page in range(self._bookmark_pages):
             threads.append(self._load_bookmarks(page=page+1, threaded=True))
         for thread in threads:
@@ -628,7 +631,7 @@ class Session(GuestSession):
     #         time.sleep(sleep)
     #     return works
 
-    def _marked_for_later_pages(self):
+    def _get_marked_for_later_pages(self):
         # pageRaw = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page=1&show=to-read").find("ol", {"aria-label": "Pagination"}).find_all("li")
         # maxPage = int(pageRaw[len(pageRaw)-2].text)
         # return maxPage
@@ -661,6 +664,7 @@ class Session(GuestSession):
         if self._marked_for_later is None:
 
           self._marked_for_later = {}
+          self._marked_for_later_pages = self._get_marked_for_later_pages()
 
           for page in range(start_page, self._marked_for_later_pages):
                 print(f"Processing page {page+1} of {self._marked_for_later_pages} pages.")
