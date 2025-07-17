@@ -593,7 +593,44 @@ class Session(GuestSession):
 
         return string.replace(",", "")
 
-    def get_marked_for_later(self, sleep=1, timeout_sleep=60):
+    # def get_marked_for_later(self, sleep=1, timeout_sleep=60):
+    #     """
+    #     Gets every marked for later work
+
+    #     Arguments:
+    #         sleep (int): The time to wait between page requests
+    #         timeout_sleep (int): The time to wait after the rate limit is hit
+
+    #     Returns:
+    #         works (list): All marked for later works
+    #     """
+    #     pageRaw = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page=1&show=to-read").find("ol", {"class": "pagination actions"}).find_all("li")
+    #     maxPage = int(pageRaw[len(pageRaw)-2].text)
+    #     works = []
+    #     for page in range(maxPage):
+    #         grabbed = False
+    #         while grabbed == False:
+    #             try:
+    #                 workPage = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page={page+1}&show=to-read")
+    #                 worksRaw = workPage.find_all("li", {"role": "article"})
+    #                 for work in worksRaw:
+    #                     try:
+    #                         workId = int(work.h4.a.get("href").split("/")[2])
+    #                         works.append(Work(workId, session=self, load=False))
+    #                     except AttributeError:
+    #                         pass
+    #                 grabbed = True
+    #             except utils.HTTPError:
+    #                 time.sleep(timeout_sleep)
+    #         time.sleep(sleep)
+    #     return works
+
+    def _marked_for_later_pages(self):
+        pageRaw = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page=1&show=to-read").find("ol", {"class": "pagination actions"}).find_all("li")
+        maxPage = int(pageRaw[len(pageRaw)-2].text)
+        return maxPage
+        
+    def get_marked_for_later(self, hist_sleep=3, start_page=0, max_pages=None, timeout_sleep=60):
         """
         Gets every marked for later work
 
@@ -604,23 +641,67 @@ class Session(GuestSession):
         Returns:
             works (list): All marked for later works
         """
-        pageRaw = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page=1&show=to-read").find("ol", {"class": "pagination actions"}).find_all("li")
-        maxPage = int(pageRaw[len(pageRaw)-2].text)
-        works = []
-        for page in range(maxPage):
-            grabbed = False
-            while grabbed == False:
-                try:
-                    workPage = self.request(f"https://archiveofourown.org/users/{self.username}/readings?page={page+1}&show=to-read")
-                    worksRaw = workPage.find_all("li", {"role": "article"})
-                    for work in worksRaw:
+
+        if self._marked_for_later is None:
+
+          self._marked_for_later = {}
+
+          for page in range(start_page, self._marked_for_later_pages):
+                print(str(page))
+                # If we are attempting to recover from errors then
+                # catch and loop, otherwise just call and go
+                if timeout_sleep is None:
+                  self._load_marked_for_later(page=page+1)
+
+                else:
+                    loaded=False
+                    while loaded == False:
                         try:
-                            workId = int(work.h4.a.get("href").split("/")[2])
-                            works.append(Work(workId, session=self, load=False))
-                        except AttributeError:
-                            pass
-                    grabbed = True
-                except utils.HTTPError:
-                    time.sleep(timeout_sleep)
-            time.sleep(sleep)
-        return works
+                            self._load_marked_for_later(page=page+1)
+                            print(f"Read marked-for-later page {page+1}")
+                            loaded = True
+
+                        except utils.HTTPError:
+                            print(f"Loading being rate limited, sleeping for {timeout_sleep} seconds")
+                            time.sleep(timeout_sleep)
+
+
+                  # Check for maximum history page load
+                if max_pages is not None and page >= max_pages:
+                    return self._marked_for_later 
+
+                # Again attempt to avoid rate limiter, sleep for a few
+                # seconds between page requests.
+                if hist_sleep is not None and hist_sleep > 0:
+                    print(f"Sleeping for {hist_sleep} seconds")
+                    time.sleep(hist_sleep)
+                    
+
+        return self._marked_for_later 
+
+    def _load_marked_for_later(self, page=1):   
+        url = f"https://archiveofourown.org/users/{self.username}/readings?show=to-read&page={page+1}"
+        workPage = self.request(url)
+        worksRaw = workPage.find_all("li", {"role": "article"})
+        #read_later = worksRaw.find("ol", {"class": "reading work index group"})
+
+        for item in worksRaw:
+            # authors = []
+            workname = None
+            workid = None
+            for a in item.h4.find_all("a"):
+                if a.attrs["href"].startswith("/works"):
+                    workname = str(a.string)
+                    workid = utils.workid_from_url(a["href"])
+                    
+            if workname != None and workid != None:
+                #new = Work(workid, load=False)
+                #setattr(new, "title", workname)
+                # setattr(new, "authors", authors)
+                # hist_item = [ new, visited_num, visited_date ]
+                # print(hist_item)
+                #if new not in self._history:
+                self._marked_for_later[workid]= workname
+
+
+
