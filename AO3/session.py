@@ -812,8 +812,8 @@ class Session(GuestSession):
             seriesid = None
             for a in item.h4.find_all("a"):
                 if a.attrs["href"].startswith("/series"):
-                    workname = str(a.string)
-                    workid = utils.workid_from_url(a["href"])
+                    seriesname = str(a.string)
+                    seriesid = utils.seriesid_from_url(a["href"])
                     
             if workname != None and workid != None:
                 #new = Work(workid, load=False)
@@ -822,7 +822,7 @@ class Session(GuestSession):
                 # hist_item = [ new, visited_num, visited_date ]
                 # print(hist_item)
                 #if new not in self._history:
-                self._marked_for_later[workid]= workname
+                self._marked_for_later[seriesid]= seriesname
 
 
 
