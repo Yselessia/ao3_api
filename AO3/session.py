@@ -355,6 +355,7 @@ class Session(GuestSession):
         if self._history is None:
             self._history = []
             for page in range(start_page, self._history_pages):
+                print(f"Processing page {page+1} of {self._history_pages} pages.")
                 # If we are attempting to recover from errors then
                 # catch and loop, otherwise just call and go
                 if timeout_sleep is None:
@@ -467,7 +468,8 @@ class Session(GuestSession):
           self._bookmarks = []
           #self._soupDump = []
           for page in range(start_page, self._bookmark_pages):
-                print(str(page))
+            print(f"Processing page {page+1} of {self._bookmark_pages} pages.")
+              
           # If we are attempting to recover from errors then
                 # catch and loop, otherwise just call and go
                 if timeout_sleep is None:
@@ -661,7 +663,8 @@ class Session(GuestSession):
           self._marked_for_later = {}
 
           for page in range(start_page, self._marked_for_later_pages):
-                print(str(page))
+                print(f"Processing page {page+1} of {self._marked_for_later_pages} pages.")
+                #print(str(page))
                 # If we are attempting to recover from errors then
                 # catch and loop, otherwise just call and go
                 if timeout_sleep is None:
