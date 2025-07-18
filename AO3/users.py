@@ -224,7 +224,7 @@ class User:
                 n = int(text)
         return n
     
-    def get_works(self, use_threading=False):
+    def get_works(self, lite = True, use_threading=False):
         """
         Get works authored by this user.
 
@@ -236,9 +236,14 @@ class User:
             if use_threading:
                 self.load_works_threaded()
             else:
-                self._works = []
-                for page in range(self._works_pages):
-                    self._load_works(page=page+1)
+                if not lite: 
+                    self._works = []
+                    for page in range(self._works_pages):
+                        self._load_works(page=page+1)
+                else: 
+                    self._works = {}
+                    for page in range(self._works_pages):
+                        self._load_works_id(page=page+1)
         return self._works
     
     @threadable.threadable
@@ -266,6 +271,24 @@ class User:
             if work.h4 is None:
                 continue
             self._works.append(get_work_from_banner(work))
+
+    def _load_works_id(self, page=1):
+        url = f"https://archiveofourown.org/users/{self.username}/works?page={page}"
+        workPage = request(url)
+        worksRaw = workPage.find_all("li", {"role": "article"})
+    
+        for item in worksRaw:
+                # authors = []
+                workname = None
+                workid = None
+                for a in item.h4.find_all("a"):
+                    if a.attrs["href"].startswith("/works"):
+                        workname = str(a.string)
+                        workid = utils.workid_from_url(a["href"])
+                if workname != None and workid != None:
+                    # this seems sketchy:
+                    self._works[workid]= workname
+        
 
     @cached_property
     def bookmarks(self):
