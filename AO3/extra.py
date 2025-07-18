@@ -192,7 +192,7 @@ def get_pagecount(url):
             n = int(text)
     return n
 
-def load_ids(url, page=1, works):
+def load_ids(url, works, page=1 ):
     """
     loads the ids of all works on a specified page. 
     """
@@ -242,12 +242,12 @@ def get_work_ids(url, sleep = 3, start_page = 0, max_pages = None, page_count = 
         print(f"Processing page {page+1} of {page_count} pages.")
         
         if timeout_sleep is None:
-                  load_ids(url, page=page+1, works= works)
+                  load_ids(url,works= works, page=page+1 )
         else: 
             loaded = False 
             while loaded == False: 
                 try: 
-                    load_ids(url, page=page+1, works = works)
+                    load_ids(url, works = works, page=page+1)
                     #print(f"Added works on {page+1} of {}.")
                     loaded = True 
 
