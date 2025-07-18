@@ -214,7 +214,7 @@ class User:
 
     @cached_property
     def _works_pages(self):
-        pages = self._soup_works.find("ol", {"title": "pagination"})
+        pages = self._soup_works.find("ol",{"aria-label": "Pagination"})
         if pages is None:
             return 1
         n = 1
@@ -281,7 +281,7 @@ class User:
 
     @cached_property
     def _bookmarks_pages(self):
-        pages = self._soup_bookmarks.find("ol", {"title": "pagination"})
+        pages = self._soup_bookmarks.find("ol",{"aria-label": "Pagination"})
         if pages is None:
             return 1
         n = 1
