@@ -16,11 +16,9 @@ from .requester import requester
 
 def get(self, *args, **kwargs):
         """Request a web page and return a Response object"""  
-        
-        if session is None:
-            req = requester.request("get", *args, **kwargs)
-        else:
-            req = requester.request("get", *args, **kwargs, session=session)
+
+        req = requester.request("get", *args, **kwargs)
+
         if req.status_code == 429:
             raise utils.HTTPError("We are being rate-limited. Try again in a while or reduce the number of requests")
         return req
