@@ -14,6 +14,31 @@ from . import threadable, utils
 from .requester import requester
 
 
+def get(self, *args, **kwargs):
+        """Request a web page and return a Response object"""  
+        
+        if self.session is None:
+            req = requester.request("get", *args, **kwargs)
+        else:
+            req = requester.request("get", *args, **kwargs, session=self.session)
+        if req.status_code == 429:
+            raise utils.HTTPError("We are being rate-limited. Try again in a while or reduce the number of requests")
+        return req
+
+def request(self, url):
+    """Request a web page and return a BeautifulSoup object.
+
+    Args:
+        url (str): Url to request
+
+    Returns:
+        bs4.BeautifulSoup: BeautifulSoup object representing the requested page's html
+    """
+
+    req = self.get(url)
+    soup = BeautifulSoup(req.content, "lxml")
+    return soup
+
 def _download_languages():
     path = os.path.dirname(__file__)
     languages = []
