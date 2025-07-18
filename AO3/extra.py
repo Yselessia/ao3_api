@@ -181,7 +181,7 @@ def get_pagecount(url):
     counts the available pages for a url.
     """
     page_one_url = f"{url}?page=1"
-    soup = self.request(page_one_url)
+    soup = request(page_one_url)
     pages = soup.find("ol",{"aria-label": "Pagination"})
     if pages is None:
         return 1
@@ -198,7 +198,7 @@ def load_ids(url, works, page=1 ):
     """
     
     url = f"{url}?page={page}"
-    workPage = self.request(url)
+    workPage = request(url)
     worksRaw = workPage.find_all("li", {"role": "article"})
     
     for item in worksRaw:
