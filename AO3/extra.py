@@ -2,7 +2,12 @@ import functools
 import os
 import pathlib
 import pickle
+import datetime
+import re
+import time
+from functools import cached_property
 
+import requests
 from bs4 import BeautifulSoup
 
 from . import threadable, utils
@@ -167,3 +172,98 @@ def download_all_threaded(redownload=False):
                 threads.append(download(rsrc, threaded=True))
     for thread in threads:
         thread.join()
+
+
+#----------Get works from any page with pagination
+
+def get_pagecount(url):
+    """
+    counts the available pages for a url.
+    """
+    page_one_url = f"{url}?page=1"
+    soup = self.request(page_one_url)
+    pages = soup.find("ol",{"aria-label": "Pagination"})
+    if pages is None:
+        return 1
+    n = 1
+    for li in pages.findAll("li"):
+        text = li.getText()
+        if text.isdigit():
+            n = int(text)
+    return n
+
+def load_ids(url, page=1, works):
+    """
+    loads the ids of all works on a specified page. 
+    """
+    
+    url = f"{url}?page={page}"
+    workPage = self.request(url)
+    worksRaw = workPage.find_all("li", {"role": "article"})
+    
+    for item in worksRaw:
+            # authors = []
+            workname = None
+            workid = None
+            for a in item.h4.find_all("a"):
+                if a.attrs["href"].startswith("/works"):
+                    workname = str(a.string)
+                    workid = utils.workid_from_url(a["href"])
+            if workname != None and workid != None:
+                # this seems sketchy:
+                works[workid]= workname
+
+    
+
+def get_work_ids(url, sleep = 3, start_page = 0, max_pages = None, page_count = None, timeout_sleep = 180): 
+    
+    """
+    Gets work ids and work-titles from work-page-urls (i.e. Userpages or fandom-pages).
+    Simply needs to end in /works (https://archiveofourown.org/tags/Pocket%20Monsters%20%7C%20Pokemon%20-%20All%20Media%20Types/works)
+
+    Arguments: 
+        url(str): 
+        sleep (int): 
+        start_page (int): 
+        max_pages (int): 
+        page_count (int): 
+        timeout_sleep (int)
+
+    Returns: 
+        works (dict): a dictionary of workid and title  
+    """
+    start_url = f"{url}?page=1" #https://archiveofourown.org/users/<name>/pseuds/<name>/works
+    works = {}
+    if not page_count: 
+        page_count = get_pagecount(url)
+
+    # starts to loop through all the pages 
+    for page in range(start_page, page_count):
+        print(f"Processing page {page+1} of {page_count} pages.")
+        
+        if timeout_sleep is None:
+                  load_ids(url, page=page+1, works= works)
+        else: 
+            loaded = False 
+            while loaded == False: 
+                try: 
+                    load_ids(url, page=page+1, works = works)
+                    #print(f"Added works on {page+1} of {}.")
+                    loaded = True 
+
+                except utils.HTTPError:
+                            print(f"Loading being rate limited, sleeping for {timeout_sleep} seconds")
+                            time.sleep(timeout_sleep)
+
+        
+        # Check for maximum history page load
+        if max_pages is not None and page >= max_pages:
+            return works
+
+        # Again attempt to avoid rate limiter, sleep for a few
+        # seconds between page requests.
+        if sleep is not None and sleep > 0:
+            print(f"Sleeping for {sleep} seconds")
+            time.sleep(sleep)
+
+    return works
