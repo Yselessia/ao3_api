@@ -14,7 +14,7 @@ class User:
     AO3 user object
     """
 
-    def __init__(self, username, session=None, load=True):
+    def __init__(self, username, session=None, load=False):
         """Creates a new AO3 user object
 
         Args:
