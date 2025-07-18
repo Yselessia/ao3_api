@@ -274,7 +274,7 @@ class User:
 
     def _load_works_id(self, page=1):
         url = f"https://archiveofourown.org/users/{self.username}/works?page={page}"
-        workPage = request(url)
+        workPage = self.request(url)
         worksRaw = workPage.find_all("li", {"role": "article"})
     
         for item in worksRaw:
