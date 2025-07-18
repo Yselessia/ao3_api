@@ -14,16 +14,17 @@ from . import threadable, utils
 from .requester import requester
 
 
-def get(*args, **kwargs):
-        
+def get(self, *args, **kwargs):
         """Request a web page and return a Response object"""  
         
-        req = requester.request("get", *args, **kwargs)
-       
+        if session is None:
+            req = requester.request("get", *args, **kwargs)
+        else:
+            req = requester.request("get", *args, **kwargs, session=session)
         if req.status_code == 429:
             raise utils.HTTPError("We are being rate-limited. Try again in a while or reduce the number of requests")
         return req
-
+        
 def request(url):
         
         """Request a web page and return a BeautifulSoup object.
