@@ -27,6 +27,7 @@ class Series:
         self._session = session
         self._soup = None
         self._seriesurl = f"https://archiveofourown.org/series/{self.id}"
+        self._work_ids = None
         if load:
             self.reload()
             
