@@ -363,7 +363,7 @@ class Series:
 
 
     
-    def _pagecount(self):
+    def _get_pagecount(self):
         url = f"{self._seriesurl}&page=1"
         soup = self.request(url)
         pages = soup.find("ol",{"aria-label": "Pagination"})
