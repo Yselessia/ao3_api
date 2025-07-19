@@ -337,7 +337,7 @@ class Session(GuestSession):
                 n = int(text)
         return n
 
-    def get_history(self, hist_sleep=3, start_page=0, max_pages=None, timeout_sleep=60):
+    def get_history(self, hist_sleep=3, start_page=0, max_pages=None, timeout_sleep=60, lite = False):
         """
         Get history works. Loads them if they haven't been previously.
 
@@ -355,21 +355,30 @@ class Session(GuestSession):
         
         if self._history is None:
             self._history = []
+            if lite: 
+                self._history = {}
             self._history_pages= self._get_history_pages()
             for page in range(start_page, self._history_pages):
                 print(f"Processing page {page+1} of {self._history_pages} pages.")
                 # If we are attempting to recover from errors then
                 # catch and loop, otherwise just call and go
                 if timeout_sleep is None:
-                    self._load_history(page=page+1)
+                    if lite: 
+                        self._load_history_id(page=page+1)
+                    else: 
+                        self._load_history(page=page+1)
                     
                 else:
                     loaded=False
                     while loaded == False:
                         try:
-                            self._load_history(page=page+1)
-                            # print(f"Read history page {page+1}")
-                            loaded = True
+                            if lite: 
+                                self._load_history_id(page=page+1)
+                                loaded = True
+                            else: 
+                                self._load_history(page=page+1)
+                                # print(f"Read history page {page+1}")
+                                loaded = True
 
                         except utils.HTTPError:
                             # print(f"History being rate limited, sleeping for {timeout_sleep} seconds")
@@ -422,6 +431,36 @@ class Session(GuestSession):
                 # print(hist_item)
                 if new not in self._history:
                     self._history.append(hist_item)
+
+    def _load_history_id (self, page=1):       
+        '''a more lightweight version to load history: 
+        returns only id and title but does not init works at all, 
+        thus reducing requests to the archive. 
+
+        could be extended to contain more metadata ....
+        '''
+        url = self._history_url.format(self.username, page)
+        workPage = self.request(url)
+        worksRaw = workPage.find_all("li", {"role": "article"})
+        #read_later = worksRaw.find("ol", {"class": "reading work index group"})
+
+        for item in worksRaw:
+            # authors = []
+            workname = None
+            workid = None
+            for a in item.h4.find_all("a"):
+                if a.attrs["href"].startswith("/works"):
+                    workname = str(a.string)
+                    workid = utils.workid_from_url(a["href"])
+                    
+            if workname != None and workid != None:
+                #new = Work(workid, load=False)
+                #setattr(new, "title", workname)
+                # setattr(new, "authors", authors)
+                # hist_item = [ new, visited_num, visited_date ]
+                # print(hist_item)
+                #if new not in self._history:
+                self._history[workid]= workname
                 
     #@cached_property
     def _get_bookmark_pages(self):
