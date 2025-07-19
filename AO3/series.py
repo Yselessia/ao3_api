@@ -26,6 +26,7 @@ class Series:
         self.id = seriesid
         self._session = session
         self._soup = None
+        self._seriesurl = f"https://archiveofourown.org/series/{self.id}"
         if load:
             self.reload()
             
@@ -358,6 +359,89 @@ class Series:
         #     setattr(new, "authors", authors)
         #     works.append(new)
         return works
+
+
+    
+    def _pagecount(self):
+        url = f"{self._seriesurl}&page=1"
+        soup = self.request(url)
+        pages = soup.find("ol",{"aria-label": "Pagination"})
+        if pages is None:
+            return 1
+        n = 1
+        for li in pages.findAll("li"):
+            text = li.getText()
+            if text.isdigit():
+                n = int(text)
+        return n
+    
+    def get_work_ids(self, hist_sleep=3, start_page=0, max_pages=None, timeout_sleep=60):
+        """
+        Arguments:
+            sleep (int): The time to wait between page requests
+            timeout_sleep (int): The time to wait after the rate limit is hit
+
+        Returns:
+            works (list): All marked for later works
+        """
+
+        if self._work_ids is None:
+
+          self._work_ids = {}
+          self._pagecount = self._get_pagecount()
+
+          for page in range(start_page, self._pagecount):
+                print(f"Processing page {page+1} of {self._pagecount} pages.")
+                #print(str(page))
+                # If we are attempting to recover from errors then
+                # catch and loop, otherwise just call and go
+                if timeout_sleep is None:
+                  self._load_work_ids(page=page+1)
+
+                else:
+                    loaded=False
+                    while loaded == False:
+                        try:
+                            self._load_work_ids(page=page+1)
+                            print(f"Read marked-for-later page {page+1}")
+                            loaded = True
+
+                        except utils.HTTPError:
+                            print(f"Loading being rate limited, sleeping for {timeout_sleep} seconds")
+                            time.sleep(timeout_sleep)
+
+
+                  # Check for maximum history page load
+                if max_pages is not None and page >= max_pages:
+                    return self._work_ids 
+
+                # Again attempt to avoid rate limiter, sleep for a few
+                # seconds between page requests.
+                if hist_sleep is not None and hist_sleep > 0:
+                    print(f"Sleeping for {hist_sleep} seconds")
+                    time.sleep(hist_sleep)
+                    
+
+        return self._work_ids 
+    
+    def _load_work_ids(self, page=1):   
+        url = f"{self._seriesurl}&page={page}"
+        workPage = self.request(url)
+        worksRaw = workPage.find_all("li", {"role": "article"})
+        #read_later = worksRaw.find("ol", {"class": "reading work index group"})
+
+        for item in worksRaw:
+            # authors = []
+            workname = None
+            workid = None
+            for a in item.h4.find_all("a"):
+                if a.attrs["href"].startswith("/works"):
+                    workname = str(a.string)
+                    workid = utils.workid_from_url(a["href"])
+                    
+            if workname != None and workid != None:
+                self._work_ids[workid]= workname
+
     
     def get(self, *args, **kwargs):
         """Request a web page and return a Response object"""  
