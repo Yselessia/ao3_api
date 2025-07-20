@@ -341,6 +341,15 @@ class Series:
     
     @cached_property
     def work_list(self):
+        '''this is deprec. because of ao3s page numbering system: 
+        only the first page of works gets loaded
+        can be fixed analogous to ie session._load_makred_for_later etc
+        '''
+        '''
+        #try later: general purpose version: 
+        all_works_soup =soup.find("ol", {"class": ["index", "group"]})
+        works_soup = all_works_soup.find_all("li", {"role": "article"})
+        '''
         ul = self._soup.find("ul", {"class": "series work index group"})
         works = []
         for work in ul.find_all("li", {"role": "article"}):
@@ -431,6 +440,12 @@ class Series:
         url = f"{self._seriesurl}&page={page}"
         workPage = self.request(url)
         worksRaw = workPage.find_all("li", {"role": "article"})
+
+        '''
+        #try later: general purpose version: 
+        all_works_soup =soup.find("ol", {"class": ["index", "group"]})
+        works_soup = all_works_soup.find_all("li", {"role": "article"})
+        '''
         #read_later = worksRaw.find("ol", {"class": "reading work index group"})
 
         for item in worksRaw:
