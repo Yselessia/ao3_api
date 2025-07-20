@@ -83,7 +83,7 @@ class Workgroup:
                     delattr(self, attr)
                     
         self._soup_start = self.request(f"{self.group_url}&page=1")
-        print(self._soup_start)
+        print(f"{self.group_url}&page=1")
         # ??? self._soup_start = self.request(self.url_start)
         #self._pages = self.pages
         #self._name = self.name()
