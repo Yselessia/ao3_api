@@ -644,7 +644,7 @@ class Session(GuestSession):
         for bookm in bookmarks.find_all("li", {"role": "article"}):
             workname = None
             workid = None
-            for a in item.h4.find_all("a"):
+            for a in bookm.h4.find_all("a"):
                 if a.attrs["href"].startswith("/works"):
                     workname = str(a.string)
                     workid = utils.workid_from_url(a["href"])
