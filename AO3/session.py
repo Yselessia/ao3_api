@@ -398,6 +398,13 @@ class Session(GuestSession):
     def _load_history(self, page=1):       
         url = self._history_url.format(self.username, page)
         soup = self.request(url)
+
+        '''
+        #try later: general purpose version: 
+        all_works_soup =soup.find("ol", {"class": ["index", "group"]})
+        works_soup = all_works_soup.find_all("li", {"role": "article"})
+        '''
+        
         history = soup.find("ol", {"class": "reading work index group"})
         for item in history.find_all("li", {"role": "article"}):
             # authors = []
@@ -442,6 +449,14 @@ class Session(GuestSession):
         url = self._history_url.format(self.username, page)
         workPage = self.request(url)
         worksRaw = workPage.find_all("li", {"role": "article"})
+
+        
+        '''
+        #try later: general purpose version: 
+        all_works_soup =soup.find("ol", {"class": ["index", "group"]})
+        works_soup = all_works_soup.find_all("li", {"role": "article"})
+        '''
+        
         #read_later = worksRaw.find("ol", {"class": "reading work index group"})
 
         for item in worksRaw:
@@ -564,10 +579,18 @@ class Session(GuestSession):
         soup = self.request(url)
         #print(soup)
         
+        '''
+        #try later: general purpose version: 
+        all_works_soup =soup.find("ol", {"class": ["index", "group"]})
+        works_soup = all_works_soup.find_all("li", {"role": "article"})
+        '''
         bookmarks = soup.find("ol", {"class": "bookmark index group"})
 
         
-        for bookm in bookmarks.find_all("li", {"class": ["bookmark", "index", "group"]}):
+        for bookm in bookmarks.find_all("li", {"class": ["bookmark", "index", "group"]}): # could use .find_all("li", {"role": "article"}) instead!!
+            # this tmk doesnt actually find anything else than .find(ol) which created bookmarks!
+            # doesnt matter though; 
+            # for more coherecy: refactor to general purpose version 
             authors = []
             recommended = False
             workid = -1
@@ -745,7 +768,11 @@ class Session(GuestSession):
         workPage = self.request(url)
         worksRaw = workPage.find_all("li", {"role": "article"})
         #read_later = worksRaw.find("ol", {"class": "reading work index group"})
-
+        '''
+        #try later: general purpose version: 
+        all_works_soup =soup.find("ol", {"class": ["index", "group"]})
+        works_soup = all_works_soup.find_all("li", {"role": "article"})
+        '''
         for item in worksRaw:
             # authors = []
             workname = None
@@ -845,6 +872,11 @@ class Session(GuestSession):
         workPage = self.request(url)
         worksRaw = workPage.find_all("li", {"role": "article"})
         #read_later = worksRaw.find("ol", {"class": "reading work index group"})
+        '''
+        #try later: general purpose version: 
+        all_works_soup =soup.find("ol", {"class": ["index", "group"]})
+        works_soup = all_works_soup.find_all("li", {"role": "article"})
+        '''
 
         for item in worksRaw:
             # authors = []
