@@ -26,7 +26,8 @@ class Workgroup:
         """
 
         self._session = session
-        self._soup_start = None
+        #self._soup_start = None
+        self._soup = None
         self.group_url = url
         self._work_ids = None
         self._pages = None
@@ -82,12 +83,13 @@ class Workgroup:
                 if attr in self.__dict__:
                     delattr(self, attr)
                     
-        self._soup_start = self.request(f"{self.group_url}&page=1")
-        print(f"{self.group_url}&page=1")
+        #self._soup_start = self.request(f"{self.group_url}&page=1")
+        self._soup = self.request(f"{self.group_url}")
+        print(f"{self.group_url}")
         # ??? self._soup_start = self.request(self.url_start)
         #self._pages = self.pages
         #self._name = self.name()
-        if "Error 404" in self._soup_start.text:
+        if "Error 404" in self._soup.text:
             raise utils.InvalidIdError("Cannot find page")
 
     @cached_property
@@ -103,7 +105,7 @@ class Workgroup:
     @property
     def loaded(self):
         """Returns True if this series has been loaded"""
-        return self._soup_start is not None
+        return self._soup is not None
         
     @cached_property
     def authenticity_token(self):
@@ -112,7 +114,7 @@ class Workgroup:
         if not self.loaded:
             return None
         
-        token = self._soup_start.find("meta", {"name": "csrf-token"})
+        token = self._soup.find("meta", {"name": "csrf-token"})
         return token["content"]
 
     @cached_property
@@ -122,12 +124,12 @@ class Workgroup:
         if not self.loaded:
             return None
 
-        heading = self._soup_start.find("h2", {"class": "heading"})
+        heading = self._soup.find("h2", {"class": "heading"})
         return heading.text.strip()
 
     @cached_property
     def pages(self):
-        pages = self._soup_start.find("ol", {"aria-label": "Pagination"})
+        pages = self._soup.find("ol", {"aria-label": "Pagination"})
         if pages is None:
             return 1
         n = 1
