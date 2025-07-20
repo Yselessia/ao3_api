@@ -136,7 +136,7 @@ class Workgroup:
                 n = int(text)
 
         if n > 10:
-            print(f"WARNING: this group of works contains more than {(n-1)*20} items on {n} pages."
+            print(f"WARNING: this group of works contains more than {(n-1)*20} items on {n} pages.")
         return n
 
 
