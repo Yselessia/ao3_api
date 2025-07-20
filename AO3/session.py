@@ -508,7 +508,8 @@ class Session(GuestSession):
     #                 self._load_bookmarks(page=page+1)
     #     return self._bookmarks
 
-    def get_bookmarks(self, hist_sleep=3, start_page=0, max_pages=None, timeout_sleep=60):
+    def get_bookmarks(self, hist_sleep=3, start_page=0, max_pages=None, timeout_sleep=60, lite = False):
+        
         """
         Kopie von get_history: jetzt auch mit sleep etc. 
 
@@ -520,25 +521,34 @@ class Session(GuestSession):
         """
 
         if self._bookmarks is None:
-
-          self._bookmarks = []
-          self._bookmark_pages= self._get_bookmark_pages()
-          #self._soupDump = []
-          for page in range(start_page, self._bookmark_pages):
+            self._bookmarks = []
+            if lite: 
+                self._bookmarks = {}
+                
+            self._bookmark_pages= self._get_bookmark_pages()
+            #self._soupDump = []
+            for page in range(start_page, self._bookmark_pages):
                 print(f"Processing page {page+1} of {self._bookmark_pages} pages.")
               
-          # If we are attempting to recover from errors then
+                # If we are attempting to recover from errors then
                 # catch and loop, otherwise just call and go
                 if timeout_sleep is None:
-                  self._load_bookmarks(page=page+1)
+                    if lite: 
+                        self._load_bookmarks_id(page=page+1)
+                    else: 
+                        self._load_bookmarks(page=page+1)
 
                 else:
                     loaded=False
                     while loaded == False:
                         try:
-                            self._load_bookmarks(page=page+1)
-                            print(f"Read history page {page+1}")
-                            loaded = True
+                            if lite:   
+                                self._load_bookmarks_id(page=page+1)
+                                loaded = True
+                                #print(f"Read history page {page+1}")
+                            else:
+                                self._load_bookmarks(page=page+1)
+                                loaded = True
 
                         except utils.HTTPError:
                             print(f"History being rate limited, sleeping for {timeout_sleep} seconds")
@@ -617,6 +627,30 @@ class Session(GuestSession):
                     setattr(new, "recommended", recommended)
                     if new not in self._bookmarks:
                         self._bookmarks.append(new)
+
+    def _load_bookmarks_id(self, page=1):
+        url = self._bookmarks_url.format(self.username, page)
+        soup = self.request(url)
+        #print(soup)
+        
+        '''
+        #try later: general purpose version: 
+        all_works_soup =soup.find("ol", {"class": ["index", "group"]})
+        works_soup = all_works_soup.find_all("li", {"role": "article"})
+        '''
+        bookmarks = soup.find("ol", {"class": "bookmark index group"})
+
+        
+        for bookm in bookmarks.find_all("li", {"role": "article"}):
+            workname = None
+            workid = None
+            for a in item.h4.find_all("a"):
+                if a.attrs["href"].startswith("/works"):
+                    workname = str(a.string)
+                    workid = utils.workid_from_url(a["href"])
+                    
+            if workname != None and workid != None:
+                self._bookmarks[workid]= workname
             
     #@cached_property
     def bookmarks(self):
