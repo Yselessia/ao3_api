@@ -260,7 +260,7 @@ class Session(GuestSession):
         Returns:
             list: List of subscriptions
         """
-        
+        self._subscription_pages= self._subscription_pages()
         if self._subscriptions is None:
             if use_threading:
                 self.load_subscriptions_threaded()
