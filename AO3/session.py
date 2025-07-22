@@ -206,7 +206,7 @@ class Session(GuestSession):
         self._bookmarks = None
         self._subscriptions = None
         
-    #@cached_property
+    @cached_property
     def _subscription_pages(self):
         url = self._subscriptions_url.format(self.username, 1)
         soup = self.request(url)
@@ -260,7 +260,7 @@ class Session(GuestSession):
         Returns:
             list: List of subscriptions
         """
-        self._subscription_pages= self._subscription_pages()
+        self._subscription_pages= self._subscription_pages
         if self._subscriptions is None:
             if use_threading:
                 self.load_subscriptions_threaded()
@@ -324,7 +324,7 @@ class Session(GuestSession):
                 setattr(new, "authors", authors)
                 self._subscriptions.append(new)
 
-    #@cached_property
+    @cached_property
     def _get_history_pages(self):
         url = self._history_url.format(self.username, 1)
         soup = self.request(url)
