@@ -99,8 +99,10 @@ class Workgroup:
         Returns:
             str: series URL
         """
-
-        return f"{self.group_url}&page=1"
+        # for some reason sometimes ? and sometimes & is used ... 
+        # find out when
+        #return f"{self.group_url}&page=1"
+        return f"{self.group_url}?page=1"
 
     @property
     def loaded(self):
@@ -195,7 +197,8 @@ class Workgroup:
         return self._work_ids 
     
     def _load_work_ids(self, page=1):   
-        url = f"{self.group_url}&page={page}"
+        #url = f"{self.group_url}&page={page}"
+        url = f"{self.group_url}?page={page}"
         soup = self.request(url)
         #all_works_soup = soup.find("ol", {"class": ["index", "group"]})
         #works_soup = all_works_soup.find_all("li", {"role": "article"})
