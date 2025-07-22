@@ -287,6 +287,7 @@ class Session(GuestSession):
     @threadable.threadable
     def _load_subscriptions(self, page=1):        
         url = self._subscriptions_url.format(self.username, page)
+        print(url)
         soup = self.request(url)
         subscriptions = soup.find("dl", {"class": "subscription index group"})
         for sub in subscriptions.find_all("dt"):
