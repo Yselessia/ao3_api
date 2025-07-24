@@ -450,7 +450,7 @@ class Session(GuestSession):
         url = self._history_url.format(self.username, page)
         workPage = self.request(url)
         worksRaw = workPage.find_all("li", {"role": "article"})
-
+        
         
         '''
         #try later: general purpose version: 
@@ -468,6 +468,11 @@ class Session(GuestSession):
                 if a.attrs["href"].startswith("/works"):
                     workname = str(a.string)
                     workid = utils.workid_from_url(a["href"])
+            #########---############
+            # added: 
+            last_read_blurb = item.find_all("h4", {"class": "viewed heading"}).text
+            workname+= f" --- {last_read_blurb}"
+            #########---############
                     
             if workname != None and workid != None:
                 #new = Work(workid, load=False)
