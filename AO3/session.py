@@ -408,13 +408,16 @@ class Session(GuestSession):
         
         history = soup.find("ol", {"class": "reading work index group"})
         for item in history.find_all("li", {"role": "article"}):
-            # authors = []
+            authors = []
             workname = None
             workid = None
+            author = None
             for a in item.h4.find_all("a"):
                 if a.attrs["href"].startswith("/works"):
                     workname = str(a.string)
                     workid = utils.workid_from_url(a["href"])
+                if a.attrs["rel": "author"]: 
+                    authors.append(a.text)
 
             visited_date = None
             visited_num = 1
@@ -438,12 +441,46 @@ class Session(GuestSession):
             if workname != None and workid != None:
                 new = Work(workid, load=False)
                 setattr(new, "title", workname)
+                setattr(new, "authors", authors)
                 # setattr(new, "authors", authors)
                 hist_item = [ new, visited_num, visited_date, mfl ]
                 # print(hist_item)
                 if new not in self._history:
                     self._history.append(hist_item)
 
+''''date_edited': '2000-04-06 09:45:20',
+ 'date_published': '2000-02-21 00:00:00',
+ 'date_updated': '2000-04-06 00:00:00',
+ 'bookmarks': int,
+ 'categories': [' '],
+ 'nchapters': int,
+ 'characters': [' ', ' '],
+ 'complete': False,
+ 'comments': int,
+ 'expected_chapters': int,
+ 'fandoms': [' '],
+ 'hits': int,
+ 'kudos': int,
+ 'language': 'English',
+ 'rating': ' ',
+ 'relationships': [' '],
+ 'restricted': False,
+ 'status': 'Work in Progress',
+ 'summary': ' ',
+ 'tags': [' ',
+  ' '],
+ 'title': ' ',
+ 'warnings': ['Creator Chose Not To Use Archive Warnings'],
+ 'id': int,
+ 'words': int,
+ 'collections': [' '],
+ 'authors': [' ', ' '],
+ 'series': [],
+ 'chapter_titles': ['', '', '', '', '', '']}'''
+
+
+
+    
     def _load_history_id (self, page=1):       
         '''a more lightweight version to load history: 
         returns only id and title but does not init works at all, 
