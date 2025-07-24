@@ -448,35 +448,6 @@ class Session(GuestSession):
                 if new not in self._history:
                     self._history.append(hist_item)
 
-''''date_edited': '2000-04-06 09:45:20',
- 'date_published': '2000-02-21 00:00:00',
- 'date_updated': '2000-04-06 00:00:00',
- 'bookmarks': int,
- 'categories': [' '],
- 'nchapters': int,
- 'characters': [' ', ' '],
- 'complete': False,
- 'comments': int,
- 'expected_chapters': int,
- 'fandoms': [' '],
- 'hits': int,
- 'kudos': int,
- 'language': 'English',
- 'rating': ' ',
- 'relationships': [' '],
- 'restricted': False,
- 'status': 'Work in Progress',
- 'summary': ' ',
- 'tags': [' ',
-  ' '],
- 'title': ' ',
- 'warnings': ['Creator Chose Not To Use Archive Warnings'],
- 'id': int,
- 'words': int,
- 'collections': [' '],
- 'authors': [' ', ' '],
- 'series': [],
- 'chapter_titles': ['', '', '', '', '', '']}'''
 
 
 
