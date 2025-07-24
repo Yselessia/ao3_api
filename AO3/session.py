@@ -411,19 +411,21 @@ class Session(GuestSession):
             authors = []
             workname = None
             workid = None
-            author = None
+            #author = None
             for a in item.h4.find_all("a"):
                 if a.attrs["href"].startswith("/works"):
                     workname = str(a.string)
                     workid = utils.workid_from_url(a["href"])
-                if a.attrs["rel": "author"]: 
-                    authors.append(a.text)
+            for author in item.h4.find_all("a", attrs={"rel" : "author"}):
+                    authors.append(author.text)
 
             visited_date = None
             visited_num = 1
             mfl = False
+            status = None 
             for viewed in item.find_all("h4", {"class": "viewed heading" }):
                 data_string = str(viewed)
+                
                 date_str = re.search('<span>Last visited:</span> (\d{2} .+ \d{4})', data_string)
                 if date_str is not None:
                     raw_date = date_str.group(1)
@@ -438,12 +440,21 @@ class Session(GuestSession):
                 if mfl_str is not None:
                     mfl = True
 
+                if re.search('Latest version.', data_string) is not None:
+                    status = 'latest version'
+                if re.search('Update available.', data_string) is not None:
+                    status = 'update available'
+                if re.search('Minor edits made since then.', data_string) is not None:
+                    status = 'latest version, minor edits'                
+
             if workname != None and workid != None:
                 new = Work(workid, load=False)
+                if not authors: 
+                    authors = ["Anonymous"]
                 setattr(new, "title", workname)
                 setattr(new, "authors", authors)
                 # setattr(new, "authors", authors)
-                hist_item = [ new, visited_num, visited_date, mfl ]
+                hist_item = [ new, visited_num, visited_date, mfl, status]
                 # print(hist_item)
                 if new not in self._history:
                     self._history.append(hist_item)
