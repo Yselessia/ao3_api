@@ -358,9 +358,9 @@ class Session(GuestSession):
             self._history = []
             if lite: 
                 self._history = {}
-            self._history_pages= self._get_history_pages()
-            for page in range(start_page, self._history_pages):
-                print(f"Processing page {page+1} of {self._history_pages} pages.")
+            #self._history_pages= self._get_history_pages()
+            for page in range(start_page, self._get_history_pages):
+                print(f"Processing page {page+1} of {self._get_history_pages} pages.")
                 # If we are attempting to recover from errors then
                 # catch and loop, otherwise just call and go
                 if timeout_sleep is None:
