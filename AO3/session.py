@@ -418,6 +418,7 @@ class Session(GuestSession):
 
             visited_date = None
             visited_num = 1
+            mfl = False
             for viewed in item.find_all("h4", {"class": "viewed heading" }):
                 data_string = str(viewed)
                 date_str = re.search('<span>Last visited:</span> (\d{2} .+ \d{4})', data_string)
@@ -429,13 +430,16 @@ class Session(GuestSession):
                 visited_str = re.search('Visited (\d+) times', data_string)
                 if visited_str is not None:
                     visited_num = int(visited_str.group(1))
-                
+                    
+                mfl_str = re.search('Marked for Later.', data_string)
+                if mfl_str is not None:
+                    mfl = True
 
             if workname != None and workid != None:
                 new = Work(workid, load=False)
                 setattr(new, "title", workname)
                 # setattr(new, "authors", authors)
-                hist_item = [ new, visited_num, visited_date ]
+                hist_item = [ new, visited_num, visited_date, mfl ]
                 # print(hist_item)
                 if new not in self._history:
                     self._history.append(hist_item)
