@@ -847,13 +847,11 @@ class Work:
             str: Summary
         """
 
-        div = self._soup.find("div", {"class": "preface group"})
-        if div is None:
+        summary_div = self._soup.find('div', attrs={'class': 'summary'})
+        if summary_div is None:
             return ""
-        html = div.find("blockquote", {"class": "userstuff"})
-        if html is None:
-            return ""
-        return str(BeautifulSoup.getText(html))
+        blockquote = summary_div.find('blockquote')
+        return blockquote.renderContents().decode('utf8').strip()
     
     @cached_property
     def start_notes(self):

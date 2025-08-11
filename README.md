@@ -2,20 +2,20 @@
 
 # AO3 API
 
-This is an unofficial API that lets you access some of AO3's (archiveofourown.org) data through Python.
+My fork of wendytg's AO3 API [via ArmindoFlores, via yasha-259] with additions from vilyhrts, jtrainrva. See the bottom for a list of the things I changed.
+
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install AO3 API.
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install this
 
 ```bash
-pip install ao3_api
+pip install git+https://github.com/Yselessia/ao3_api.git
 ```
 
 # Github
 
-https://github.com/wendytg/ao3_api
-
+https://github.com/Yselessia/ao3_api
 
 # Usage
 
@@ -283,3 +283,10 @@ For information or bug reports, please create an issue or start a discussion.
 
 # License
 [MIT](https://choosealicense.com/licenses/mit/)
+
+# Things I Changed
+- Search feature previously threw an error if the number of total results was greater than 999 (since the value had a comma in it and was then trying to be turned into an int), fixed that by removing the comma before turning it into an int
+- Getting the summary of a work will now return it with the html formatting
+- Added functions search_from_url and url_update:
+- search_from_url takes in a url of an AO3 filtered tag and sets the Search to match that url
+- url_update works like the original update function, just with search_from_url. If you use search_from_url to set up the Search, you must update it using url_update (not the original update function
