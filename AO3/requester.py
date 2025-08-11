@@ -2,7 +2,29 @@ import threading
 import time
 
 import requests
+from ratelimit import limits, sleep_and_retry, RateLimitException
+import backoff
+from random import expovariate
+import datetime
 
+RATE = .2
+PERIOD = 150
+EXP_LAMBDA = 0
+
+def setPeriod(period):
+    PERIOD=period
+
+def setRate(rate):
+    PERIOD=rate
+    
+def setJitter(exp_lambda):
+    EXP_LAMBDA = exp_lambda
+
+
+class RateLimitedError(Exception):
+    def __init__(self, message, errors=[]):
+        super().__init__(message)
+        self.errors = errors
 
 class Requester:
     """Requester object"""
@@ -21,12 +43,28 @@ class Requester:
         self._timew = timew
         self._lock = threading.Lock()
         self.total = 0
+
+        self.time_start = time.time()
         
+        
+        self.waiting = False
+        self.wait_condition = threading.Condition()
+        
+        self._explambda = 0
+    
+    def setExpLambda(self, value):
+        self._explambda = value    
+    
     def setRQTW(self, value):
         self._rqtw = value
         
     def setTimeW(self, value):
         self._timew = value
+
+    def backoff_funciton(r):
+        out = int(r.headers.get("Retry-After"))
+        print(f"Rate limited. Waiting {out} seconds. You may want to adjust the rate limiter.")
+        return out
 
     def request(self, *args, **kwargs):
         """Requests a web page once enough time has passed since the last request
@@ -37,35 +75,46 @@ class Requester:
         Returns:
             requests.Response: Response object
         """
+        if EXP_LAMBDA>0:
+            time.sleep(expovariate(EXP_LAMBDA))
         
-        # We've made a bunch of requests, time to rate limit?
-        if self._rqtw != -1:
-            with self._lock:
-                if len(self._requests) >= self._rqtw:
-                    t = time.time()
-                    # Reduce list to only requests made within the current time window
-                    while len(self._requests):
-                        if t-self._requests[0] >= self._timew:
-                            self._requests.pop(0) # Older than window, forget about it
-                        else:
-                            break # Inside window, the rest of them must be too
-                    # Have we used up all available requests within our window?
-                    if len(self._requests) >= self._rqtw: # Yes
-                        # Wait until the oldest request exits the window, giving us a slot for the new one
-                        time.sleep(self._requests[0] + self._timew - t)
-                        # Now outside window, drop it
-                        self._requests.pop(0)
-                        
-                if self._rqtw != -1:
-                    self._requests.append(time.time())
-                self.total += 1
-                           
+        self.total+=1
+        req = self.request_helper(*args, **kwargs)
+                
+            
+        return req
+        
+    @sleep_and_retry
+    @limits(calls=int(PERIOD*RATE), period=PERIOD)
+    def check_limit(self):
+        ''' Empty function just to check for calls to API '''
+        return
+    
+    
+    @backoff.on_predicate(
+        backoff.runtime,
+        predicate=lambda r: r.status_code == 429,
+        value=backoff_funciton,
+        jitter=None,
+    )
+    @sleep_and_retry
+    @limits(calls=int(PERIOD*RATE), period=PERIOD)
+    def request_helper(self, *args, **kwargs):
+        """Requests a web page once enough time has passed since the last request
+        
+        Args:
+            session(requests.Session, optional): Session object to request with
+
+        Returns:
+            requests.Response: Response object
+        """
         if "session" in kwargs:
             sess = kwargs["session"]
             del kwargs["session"]
             req = sess.request(*args, **kwargs)
         else:
             req = requests.request(*args, **kwargs)
+                
             
         return req
 

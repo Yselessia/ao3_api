@@ -269,6 +269,197 @@ Replies: 2
 Loading comments takes a very long time so you should try and use it as little as possible. It also causes lots of requests to be sent to the AO3 servers, which might result in getting the error `utils.HTTPError: We are being rate-limited. Try again in a while or reduce the number of requests`. If that happens, you should try to space out your requests or reduce their number. There is also the option to enable request limiting using `AO3.utils.limit_requests()`, which make it so you can't make more than x requests in a certain time window.
 You can also reply to comments using the `Comment.reply()` function, or delete one (if it's yours) using `Comment.delete()`.
 
+## Tags
+
+Much of the uniqueness of AO3 comes from how it handles tags. Tags and their relationships with one another maintained by volunteer "Tag Wranglers." See https://archiveofourown.org/wrangling_guidelines/2 for AO3's guidelines on Tag maintenence.
+
+Tags are the primary mechanism for how users navigate AO3. The Tag class was created to better facilitate analysis of Works by their tags.
+
+To load a tag, simple declare an instance of the Tag class with the given name. Once loaded, a Tag will populate metadata such as its parent tags, subtags, children, synonyms, categories, etc. You can view all of this with the `metadata` property.
+
+```
+Tag("Jack Frost").metadata
+```
+
+```
+{'name': 'Jack Frost',
+ 'category': 'Character',
+ 'date_queried': '2023-12-13 03:48:44.860964',
+ 'loaded': True,
+ 'query_error': False,
+ 'canonical': True,
+ 'parent_names': ['No Fandom'],
+ 'metatag_names': [],
+ 'subtag_names': ['Jack Frost (Folklore)',
+  'Jack Frost (StarCraft)',
+  'Jack Frost (Rankin/Bass)',
+  'Jack Frost (Santa Clause)',
+  'Jack Frost (Guardians of Childhood)',
+  'Jack Frost (Shin Megami Tensei)',
+  'Jack Frost (Rainbow Magic)',
+  'Jack Frost (Jack Frost Movie 1998)'],
+ 'immediate_metatag_names': [],
+ 'immediate_subtag_names': ['Jack Frost (Folklore)',
+  'Jack Frost (StarCraft)',
+  'Jack Frost (Rankin/Bass)',
+  'Jack Frost (Santa Clause)',
+  'Jack Frost (Guardians of Childhood)',
+  'Jack Frost (Shin Megami Tensei)',
+  'Jack Frost (Rainbow Magic)',
+  'Jack Frost (Jack Frost Movie 1998)'],
+ 'synonym_names': [],
+ 'children': {'Relationship': ['Jack Frost & Snow Miser',
+   'Snow Miser & Jack Frost']}}
+```
+
+```
+a = Tag("SHAKESPEARE William - Works",load=True)
+a.metadata
+b = Tag("SHAKESPEARE William - Works",load=True)
+assert a == b
+```
+
+Once a Tag object is created, it is cached by its name. Creating a new object of that Tag name redirects to the first instance created.
+
+```
+b = Tag("SHAKESPEARE William - Works",load=True)
+assert a == b
+```
+
+When loading a tag that has been made a synonym of a different tag, the Tag constructor will automatically populate the new primary tag and redirect all synonyms in the cache.
+
+```
+print(Tag("Magic the Gathering"))
+```
+
+```
+<Tag [Magic: The Gathering (Card Game)]>
+```
+
+Cacheing limits the number of queries to AO3 when parsing data of similar tags. The primary use case for the Tag class is the `Works.search_tags` property.
+
+When searching on the archive, a work can be found by all of its tags as well as any metatags those tags have. This method takes all listed tags of a work and queries AO3 for all metatags, then returns the names of all canonical tags found.
+
+```
+w = Work("49394584")
+w.search_tags
+```
+
+```
+['Teen And Up Audiences',
+ 'F/M',
+ 'Wanda Maximoff/Kurt Wagner',
+ 'M/M',
+ 'Wolverine And The X-Men (Cartoon)',
+ 'X-Men - All Media Types',
+ 'Marvel',
+ 'Wolverine and the X-Men - All Media Types',
+ 'Kurt Wagner',
+ 'Kurt',
+ 'Original Female Character(s)/Original Male Character(s)',
+ 'Original Character(s)/Original Character(s)',
+ 'Wanda Maximoff',
+ 'Wanda',
+ 'Original Characters']
+```
+
+A Tag object's parent and metatags can be found recursively using utils.get_inherited_tags.
+
+```
+utils.get_inherited_tags(Tag("James Howlett"))
+```
+
+```
+[<Tag [Logan (X-Men)]>,
+ <Tag [Weapon X (Comics)]>,
+ <Tag [Logan]>,
+ <Tag [Nick Fury: Agent of S.H.I.E.L.D.]>,
+ <Tag [No Fandom]>,
+ <Tag [Wolverine (Comics)]>,
+ <Tag [No Media]>,
+ <Tag [Wolverine and the X-Men (Comics)]>,
+ <Tag [X-Men: The Animated Series (Cartoon 1992)]>,
+ <Tag [X-Force (Comics)]>,
+ <Tag [Ultimates (Marvel Comics)]>,
+ <Tag [Marvel Noir]>,
+ <Tag [Marvel vs. Capcom (Video Games)]>,
+ <Tag [Deadpool (Video Game 2013)]>,
+ <Tag [Wolverine (Movies)]>,
+ <Tag [X-Men (Alternate Timeline Movies)]>,
+ <Tag [Marvel (Comics)]>,
+ <Tag [Uncanny Avengers]>,
+ <Tag [X-Men Evolution]>,
+ <Tag [X-Men - All Media Types]>,
+ <Tag [X-Men (Comicverse)]>,
+ <Tag [X-Men (Original Timeline Movies)]>,
+ <Tag [Avengers (Comics)]>,
+ <Tag [Marvel 616]>,
+ <Tag [Marvel]>,
+ <Tag [Movies]>,
+ <Tag [Cartoons & Comics & Graphic Novels]>,
+ <Tag [Video Games]>,
+ <Tag [Wolverine and the X-Men - All Media Types]>,
+ <Tag [Marvel Ultimate Universe]>,
+ <Tag [X-23 (Comic)]>,
+ <Tag [Marvel's Midnight Suns (Video Game)]>,
+ <Tag [X-Men (Movieverse)]>,
+ <Tag [TV Shows]>,
+ <Tag [X-Men (Ultimateverse)]>,
+ <Tag [Deadpool - All Media Types]>]
+```
+
+To import and export the Tag cache, there are safe wrappers for 'dumps()' and 'loads()' that maintain a lock on the cache. 
+
+```
+data = Tag.dumps()
+
+Tag.deleteCache()
+
+Tag.loads(data)
+```
+
+## Tag Search
+
+To search for works, you can either use the `AO3.tag_search()` function and parse the BeautifulSoup object returned yourself, or use the `AO3.TagSearch` class to automatically do that for you.
+
+```py3
+import AO3
+search = AO3.TagSearch(
+    canonical=True,
+    fandoms='Rosencrantz & Guildenstern are Dead - Stoppard',
+    category='Character',
+    sort_column='uses',
+    sort_direction='desc')
+
+search = TagSearch(canonical=True,fandoms='Rosencrantz & Guildenstern are Dead - Stoppard',category='Character',sort_column='uses',sort_direction='desc')
+search.update()
+print(search.total_results)
+for result in search.results:
+  print(result)
+```
+
+```
+13
+<Tag [Horatio (Hamlet)]>
+<Tag [Ophelia (Hamlet)]>
+<Tag [Hamlet (Hamlet)]>
+<Tag [Claudius (Hamlet)]>
+<Tag [Gertrude (Hamlet)]>
+<Tag [Guildenstern (Hamlet)]>
+<Tag [Rosencrantz (Hamlet)]>
+<Tag [Polonius (Hamlet)]>
+<Tag [Fortinbras (Hamlet)]>
+<Tag [Rosencrantz and Guildenstern (Hamlet)]>
+<Tag [Alfred (Rosencrantz & Guildenstern)]>
+<Tag [The Players (Hamlet)]>
+<Tag [First Player | Player King (Hamlet)]>
+```
+
+Tag usage data and date of search are included with the Tag object in the cache after a tag search. You can load the rest of the tag data as normal with the `reload` method without overwriting the usage data. To get more then the first 50 tags, change the page number using 
+```py3
+search.page = 2
+```
+
 
 ## Extra
 

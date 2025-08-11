@@ -4,12 +4,15 @@ from functools import cached_property
 
 from bs4 import BeautifulSoup
 
-from . import threadable, utils
+from . import threadable, utils, tags
 from .chapters import Chapter
 from .comments import Comment
 from .requester import requester
 from .users import User
 
+from .utils import tagname_from_href
+
+MAX_WORKERS = None
 
 class Work:
     """
@@ -33,6 +36,11 @@ class Work:
         self.chapters = []
         self.id = workid
         self._soup = None
+        
+        self.date_queried = None
+        
+        self.MAX_WORKERS = None
+        
         if load:
             self.reload(load_chapters)
             
@@ -44,6 +52,9 @@ class Work:
     
     def __eq__(self, other):
         return isinstance(other, __class__) and other.id == self.id
+    
+    def __hash__(self):
+        return hash(self.id)
     
     def __getstate__(self):
         d = {}
@@ -63,7 +74,7 @@ class Work:
                 self.__dict__[attr] = value
         
     @threadable.threadable
-    def reload(self, load_chapters=True):
+    def reload(self, load_chapters=False, load_chapter_dates = False):
         """
         Loads information about this work.
         This function is threadable.
@@ -81,7 +92,12 @@ class Work:
         if "Error 404" in self._soup.find("h2", {"class", "heading"}).text:
             raise utils.InvalidIdError("Cannot find work")
         if load_chapters:
-            self.load_chapters()
+            self.load_chapters() 
+            
+        if load_chapter_dates:
+            _ = self.chapter_dates
+        
+        self.date_queried = datetime.now()
         
     def set_session(self, session):
         """Sets the session used to make requests for this work
@@ -111,9 +127,11 @@ class Work:
                 if preface_group is None:
                     continue
                 title = preface_group.find("h3", {"class": "title"})
+                id_ = int(title.a["href"].split("/")[-1])
                 if title is None:
                     continue
-                id_ = int(title.a["href"].split("/")[-1])
+                else:
+                    title = str(title)
                 c = Chapter(id_, self, self._session, False)
                 c._soup = chapter
                 self.chapters.append(c)
@@ -667,7 +685,7 @@ class Work:
 
         language = self._soup.find("dd", {"class": "language"})
         if language is not None:
-            return language.string.strip()
+            return str(language.string.strip())
         else:
             return "Unknown"
 
@@ -736,7 +754,7 @@ class Work:
         return self.date_published
     
     @cached_property
-    def tags(self):
+    def freeforms(self):
         """Returns all the work's tags
 
         Returns:
@@ -747,7 +765,7 @@ class Work:
         tags = []
         if html is not None:
             for tag in html.find_all("li"):
-                tags.append(tag.a.string)
+                tags.append(str(tagname_from_href(tag.a['href'])))
         return tags
 
     @cached_property
@@ -762,7 +780,7 @@ class Work:
         characters = []
         if html is not None:
             for character in html.find_all("li"):
-                characters.append(character.a.string)
+                characters.append(str(tagname_from_href(character.a['href'])))
         return characters
 
     @cached_property
@@ -777,7 +795,7 @@ class Work:
         relationships = []
         if html is not None:
             for relationship in html.find_all("li"):
-                relationships.append(relationship.a.string)
+                relationships.append(str(tagname_from_href(relationship.a['href'])))
         return relationships
 
     @cached_property
@@ -792,7 +810,7 @@ class Work:
         fandoms = []
         if html is not None:
             for fandom in html.find_all("li"):
-                fandoms.append(fandom.a.string)
+                fandoms.append(str(tagname_from_href(fandom.a['href'])))
         return fandoms
 
     @cached_property
@@ -807,7 +825,7 @@ class Work:
         categories = []
         if html is not None:
             for category in html.find_all("li"):
-                categories.append(category.a.string)
+                categories.append(str(tagname_from_href(category.a['href'])))
         return categories
 
     @cached_property
@@ -822,7 +840,7 @@ class Work:
         warnings = []
         if html is not None:
             for warning in html.find_all("li"):
-                warnings.append(warning.a.string)
+                warnings.append(str(tagname_from_href(warning.a['href'])))
         return warnings
 
     @cached_property
@@ -835,7 +853,7 @@ class Work:
 
         html = self._soup.find("dd", {"class": "rating tags"})
         if html is not None:
-            rating = html.a.string
+            rating = str(tagname_from_href(html.a['href']))
             return rating
         return None
 
@@ -935,7 +953,7 @@ class Work:
 
         req = self.get(url)
         if len(req.content) > 650000:
-            warnings.warn("This work is very big and might take a very long time to load")
+            warnings.warn("This work is very big and might take a very long time to load", stacklevel=2)
         soup = BeautifulSoup(req.content, "lxml")
         return soup
 
@@ -951,3 +969,62 @@ class Work:
         """
 
         return string.replace(",", "")
+
+    def set_max_workers(workers):
+        MAX_WORKERS = workers
+
+    @cached_property
+    def tags_unified(self):
+        '''
+        Returns all tags of a work in a single list as Tag objects
+        '''
+        return list(map(lambda t:tags.Tag(t,load=False,session=self._session),[self.rating]+self.warnings+self.categories+self.fandoms+self.relationships+self.characters+self.freeforms))
+
+    
+    def set_max_workers(self,workers):
+        self.MAX_WORKERS = workers
+    
+    @cached_property
+    def search_tags(self):
+        '''
+        Returns the names of all tags that could return this work in a search.
+        
+        In practice, this is all listed tags and any metatags associated with them.
+        Any tag that has been made synonymous to another tag is replaced with the corresponding main tag.
+        For example, the a work with the tag "Wolverine And The X-Men (Cartoon)" will return
+        ["Wolverine And The X-Men (Cartoon)", "Wolverine and the X-Men - All Media Types", "X-Men - All Media Types", "Marvel"]
+        
+        This method queries AO3 at least once for each tag in self.tags_unified.
+        '''
+        return [tag.name for tag in utils.get_inherited_tags(self.tags_unified,parents=False,metatags=True,characters_from_relationships=False,max_workers=self.MAX_WORKERS)]
+
+    def inherited_tags(self,metatags=True,parents=False,characters_from_relationships=False):
+        '''
+        Returns all tags along with all their parents and metatags recursively as Tag objects.
+        
+        For example, the a work with the tag "Chi-Chi/Son Goku (Dragon Ball)" will return a list
+        of Tag objects with ["Chi-Chi/Son Goku (Dragon Ball)", "Dragon Ball", "Son Goku (Dragon Ball)",
+        "Chi-Chi (Dragon Ball)","Son Goku", "Anime & Manga","Chi-Chi","No Fandom","Goku","No Media"]
+        
+        Args:
+            metatags (bool): If True, will return any metatags found.
+            
+            parents (bool): If True, will return the parents of any tags recursively.
+            
+            characters_from_relationships (bool): If True, will return the corresponding
+            character tags for each relationship tag. AO3 does not list each character in
+            a relationships as a metatag. For example, a fic tagged with "Patrick Stump/Pete Wentz"
+            must be explicitly tagged by the author with "Patrick Stump" and "Pete Wentz"
+            separately or a search will for either will not produce the fic.
+            
+        '''
+        return utils.get_inherited_tags(self.tags_unified,metatags=metatags,parents=parents,characters_from_relationships=characters_from_relationships)
+    
+    
+    @cached_property
+    def chapter_dates(self):
+        temp_soup = self.request(f"https://archiveofourown.org/works/{self.id}/navigate?view_adult=true&view_full_work=true")
+        if "Error 404" in self._soup.find("h2", {"class", "heading"}).text:
+            raise utils.InvalidIdError("Cannot find work")
+        dts = self._soup.find("ol", {"class":"chapter index group"}).find_all("span",{"class":"datetime"})
+        return [datetime(*list(map(int, dp.text[1:-1].split("-")))) for dp in dts]
