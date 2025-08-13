@@ -2,7 +2,7 @@
 
 # AO3 API
 
-My fork of wendytg's AO3 API [via ArmindoFlores, via yasha-259] with additions from vilyhrts, jtrainrva. See the bottom for a list of the things I changed.
+My fork of wendytg's AO3 API [via ArmindoFlores, via yasha-259] with additions from vilyhrts, jtrainrva. See Changes under Usage for my additions.
 
 
 ## Installation
@@ -466,6 +466,25 @@ search.page = 2
 AO3.extra contains the the code to download some extra resources that are not core to the functionality of this package and don't change very often. One example would be the list of fandoms recognized by AO3.
 To download a resource, simply use `AO3.extra.download(resource_name)`. To download every resource, you can use `AO3.extra.download_all()`. To see the list of available resources, use `AO3.extra.get_resources()`.
 
+## Changes
+- Added QuoteSearch class. This finds a work from search results using a direct quote from the work body. It's currently capped at looking through one page of search results.
+
+```py3
+import AO3
+search = AO3.Search(any_field="Clarke Lexa AND Chemistry", word_count=AO3.utils.Constraint(5000, 15000))
+search.update()
+search = AO3.QuoteSearch("so guarded and formal and yet how her smile could be so kind.", search.pages, search.results)
+print(search.total_results)
+for result in search.results:
+  print(result)
+  print(result.snippets)
+```
+
+```
+1
+<Work [Chemistry]>
+<Chapter 6 [You Should Study]>: ["...g out on Friday and wondering why her admittedly hot chemistry tutor acted so guarded and formal and yet how her smile could be so kind."]
+```
 
 # Contact info
 
@@ -474,10 +493,3 @@ For information or bug reports, please create an issue or start a discussion.
 
 # License
 [MIT](https://choosealicense.com/licenses/mit/)
-
-# Things I Changed
-- Search feature previously threw an error if the number of total results was greater than 999 (since the value had a comma in it and was then trying to be turned into an int), fixed that by removing the comma before turning it into an int
-- Getting the summary of a work will now return it with the html formatting
-- Added functions search_from_url and url_update:
-- search_from_url takes in a url of an AO3 filtered tag and sets the Search to match that url
-- url_update works like the original update function, just with search_from_url. If you use search_from_url to set up the Search, you must update it using url_update (not the original update function

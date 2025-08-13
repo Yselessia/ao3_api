@@ -4,6 +4,7 @@ from .chapters import Chapter
 from .comments import Comment
 from .search import Search
 from .tag_search import TagSearch
+from .quote_search import QuoteSearch
 from .series import Series
 from .session import GuestSession, Session
 from .users import User

@@ -30,6 +30,16 @@ class Chapter:
         except:
             return f"<Chapter [{self.id}] from [{self.work}]>"
     
+    #messy 
+    @property
+    def str_no_work(self):
+        if self.id is None:
+            return f"[ONESHOT]"
+        try:
+            return f"<Chapter {self.number} [{self.title}]>"
+        except:
+            return f"<Chapter [{self.id}]>"
+
     def __eq__(self, other):
         return isinstance(other, __class__) and other.id == self.id
     

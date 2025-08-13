@@ -32,6 +32,8 @@ class Work:
             utils.InvalidIdError: Raised if the work wasn't found
         """
 
+        self._snippet_list = None
+
         self._session = session
         self.chapters = []
         self.id = workid
@@ -870,6 +872,26 @@ class Work:
             return ""
         blockquote = summary_div.find('blockquote')
         return blockquote.renderContents().decode('utf8').strip()
+    
+    #this is not cached as it should change if the search terms are changed
+    #not tested
+    @property  
+    def snippets(self):
+        """List of additional text data associated with the work\n
+        Not cached.
+        Returns str"""
+        if self._snippet_list is None:
+            return ""
+        #i willnae do html this is a basic string <- format this later
+        #modify the logic if you need it for something less specific than QuoteSearch
+        string = ""
+        for chapter in self._snippet_list:
+            string += chapter[0] + ": " #adds title
+            string += str(chapter[1]) + "\n"
+        return string
+    @snippets.setter 
+    def snippets(self, snippet_list):
+        self._snippet_list = snippet_list
     
     @cached_property
     def start_notes(self):
